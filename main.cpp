@@ -23,15 +23,11 @@ void checkPermission()
 
 int main(int argc, char *argv[])
 {
-#ifdef Q_OS_ANDROID
-    checkPermission();
-#endif
-    qputenv("QML2_IMPORT_PATH", "");
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
     QCoreApplication::setOrganizationName("gongjianbo");
-    QCoreApplication::setOrganizationDomain("gongjianbo.org");
+    QCoreApplication::setOrganizationDomain("gongjianbo.com");
     QCoreApplication::setApplicationName("HelloQtAndroid");
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
