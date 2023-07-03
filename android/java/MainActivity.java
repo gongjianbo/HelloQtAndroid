@@ -8,18 +8,18 @@ import android.os.Bundle;
 import android.util.Log;
  
 public class MainActivity extends QtActivity {
-    private String LogTag = "Main Activity";
+    private String LogTag = "[MainActivity]";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        Log.d(LogTag, "onCreate MainActivity start");
+        Log.e(LogTag, String.format("onCreate MainActivity start. 0x%x", Thread.currentThread().getId()));
         super.onCreate(savedInstanceState);
-        Log.d(LogTag, String.format("getApplicationContext() equals MyApplication.getContext() ? %b",
+        Log.e(LogTag, String.format("getApplicationContext() equals MyApplication.getContext() ? %b",
             getApplicationContext().equals(MyApplication.getContext())));
-        Log.d(LogTag, String.format("getApplicationContext() equals Activity ? %b",
+        Log.e(LogTag, String.format("getApplicationContext() equals Activity ? %b",
             getApplicationContext().equals(this)));
         // 设置屏幕常量
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        Log.d(LogTag, "onCreate MainActivity finish");
+        Log.e(LogTag, "onCreate MainActivity finish");
     }
 }

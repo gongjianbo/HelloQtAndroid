@@ -10,7 +10,11 @@ CONFIG += c++17
 
 TEMPLATE = app
 
+HEADERS += \
+    USBManager.h
+
 SOURCES += \
+    USBManager.cpp \
     main.cpp
 
 DESTDIR = $$PWD/bin
@@ -38,7 +42,8 @@ android{
 
     DISTFILES += \
         android/java/MyApplication.java \
-        android/java/MainActivity.java
+        android/java/MainActivity.java \
+        android/java/USBMonitor.java
 
     # LIBS +=
 

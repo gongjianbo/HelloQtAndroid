@@ -7,8 +7,14 @@ Window {
     visible: true
     title: qsTr("Hello Qt Android")
 
-    Text {
+    Column {
         anchors.centerIn: parent
-        text: "Hello Qt Android"
+        spacing: 12
+        Text {
+            text: "Hello Qt Android"
+        }
+        Text {
+            text: "USB " + (usbManager.isOpen ? usbManager.deviceName : "None")
+        }
     }
 }
