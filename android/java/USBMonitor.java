@@ -23,7 +23,7 @@ public class USBMonitor {
     private PendingIntent permissionIntent;
     private Context context;
     private UsbDeviceConnection connection = null;
-    private boolean isOpen = false;
+    private UsbDevice connectDevice;
 
     public USBMonitor(Context ctx) {
         Log.e(LogTag, String.format("init USBMonitor. 0x%x", Thread.currentThread().getId()));
@@ -48,7 +48,7 @@ public class USBMonitor {
     private Runnable initRunable = new Runnable() {
         @Override
         public void run() {
-            Log.e(LogTag, String.format("init USBMonitor doing. 0x%x", Thread.currentThread().getId()));
+            Log.e(LogTag, String.format("init Runable doing. 0x%x", Thread.currentThread().getId()));
             manager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
             permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_UPDATE_CURRENT);
 
@@ -76,10 +76,13 @@ public class USBMonitor {
                 int fd = connection.getFileDescriptor();
                 int vid = usb_device.getVendorId();
                 int pid = usb_device.getProductId();
-                if (openDevice(fd, vid, pid))
+                if (openDevice(fd, vid, pid)) {
+                    connectDevice = usb_device;
                     break;
-                connection.close();
-                connection = null;
+                } else {
+                    connection.close();
+                    connection = null;
+                }
             }
         }
     };
@@ -89,6 +92,7 @@ public class USBMonitor {
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
+            Log.e(LogTag, String.format("state onReceive %s. 0x%x", action, Thread.currentThread().getId()));
             UsbDevice usb_device = (UsbDevice) intent.getExtras().get("device");
             if (usb_device == null)
                 return;
@@ -107,14 +111,19 @@ public class USBMonitor {
                 int fd = connection.getFileDescriptor();
                 int vid = usb_device.getVendorId();
                 int pid = usb_device.getProductId();
-                if (!openDevice(fd, vid, pid)) {
+                if (openDevice(fd, vid, pid)) {
+                    connectDevice = usb_device;
+                } else {
                     connection.close();
                     connection = null;
                 }
             } else if (action == UsbManager.ACTION_USB_DEVICE_DETACHED) {
                 String msg = "Detached vid:" + usb_device.getVendorId() + " pid:" + usb_device.getProductId();
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
-                if (connection != null) {
+                // 这里只判断了 vid pid，但不一定就是实际打开的设备
+                if (connection != null &&
+                    connectDevice.getVendorId() == usb_device.getVendorId() &&
+                    connectDevice.getProductId() == usb_device.getProductId()) {
                     closeDevice();
                     connection.close();
                     connection = null;

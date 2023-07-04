@@ -8,11 +8,11 @@
 static jboolean openDevice(JNIEnv * /*env*/, jobject /*thiz*/, jint fd, jint vid, jint pid)
 {
     bool ret = true;
-    qDebug() << __FUNCTION__ << fd << vid << pid;
+    qDebug() << __FUNCTION__ << fd << QString::number(vid, 16) << QString::number(pid, 16);
     // 拿到 fd 就可以通过 libusb 的接口进行访问了
     if (ret) {
         // 如果是设备枚举出来的名字，java USBDevice 就可以获取，也可能是设备打开后读取到的标识
-        QString name = QString("%1 - %2").arg(vid).arg(pid);
+        QString name = QString("0x%1 - 0x%2").arg(QString::number(vid, 16)).arg(QString::number(pid, 16));
         QMetaObject::invokeMethod(USBManager::getInstance(), "setDevice", Qt::QueuedConnection,
                                   Q_ARG(bool, ret), Q_ARG(QString, name));
     }
