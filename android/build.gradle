@@ -18,6 +18,7 @@ apply plugin: 'com.android.application'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+    implementation 'androidx.appcompat:appcompat:1.4.1'
 }
 
 android {
@@ -53,6 +54,8 @@ android {
 
     tasks.withType(JavaCompile) {
         options.incremental = true
+        options.encoding = "UTF-8"
+        // options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
     }
 
     compileOptions {

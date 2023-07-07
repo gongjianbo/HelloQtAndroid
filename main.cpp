@@ -2,12 +2,12 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include "USBManager.h"
+#include "FileTool.h"
 
-#ifdef Q_OS_ANDROID
 #include <QtAndroidExtras/QtAndroid>
 #define READ_EXTERNAL_STORAGE "android.permission.READ_EXTERNAL_STORAGE"
 #define WRITE_EXTERNAL_STORAGE "android.permission.WRITE_EXTERNAL_STORAGE"
-// 授权检测
+// 动态申请存储权限
 void checkPermission()
 {
     QtAndroid::PermissionResult r = QtAndroid::checkPermission(WRITE_EXTERNAL_STORAGE);
@@ -21,7 +21,6 @@ void checkPermission()
         }
     }
 }
-#endif
 
 int main(int argc, char *argv[])
 {
@@ -38,6 +37,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
+    qmlRegisterType<FileTool>("GongJianBo", 1, 0, "FileTool");
     engine.rootContext()->setContextProperty("usbManager", USBManager::getInstance());
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));

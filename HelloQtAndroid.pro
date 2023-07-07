@@ -11,9 +11,11 @@ CONFIG += c++17
 TEMPLATE = app
 
 HEADERS += \
+    FileTool.h \
     USBManager.h
 
 SOURCES += \
+    FileTool.cpp \
     USBManager.cpp \
     main.cpp
 
