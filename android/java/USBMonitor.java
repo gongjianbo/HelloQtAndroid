@@ -97,6 +97,8 @@ public class USBMonitor {
             if (usb_device == null)
                 return;
             if (action == UsbManager.ACTION_USB_DEVICE_ATTACHED || action == ACTION_USB_PERMISSION) {
+                if (connection != null)
+                    return;
                 if (!manager.hasPermission(usb_device)) {
                     manager.requestPermission(usb_device, permissionIntent);
                     return;
