@@ -34,12 +34,26 @@ public class MainActivity extends QtActivity {
         // 设置屏幕常量
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
+        // 相机权限
+        verifyCameraPermissions(this);
         // 文件读写权限
         verifyStoragePermissions(this);
 
         Log.e(LogTag, "onCreate MainActivity finish");
     }
 
+    // 相机权限
+    public static void verifyCameraPermissions(Activity activity) {
+        int request_code = 1;
+        if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            // 如果没有，获取读取和写入动态权限
+            ActivityCompat.requestPermissions(activity, new String[]{
+                    Manifest.permission.CAMERA
+            }, request_code);
+        }
+    }
+
+    // 文件读写权限
     public static void verifyStoragePermissions(Activity activity) {
         // >=11 外部文件需要特殊的权限
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

@@ -8,12 +8,17 @@
          Remove the comment if you do not require these default permissions. -->
     <!-- %%INSERT_PERMISSIONS -->
 
-    <!-- USB权限 -->
+    <!-- usb permission -->
     <uses-permission android:name="android.hardware.usb.host"/>
-    <uses-permission android:name="android.hardware.usb.accessory" />
-    <!-- 存储权限 -->
+    <uses-permission android:name="android.hardware.usb.accessory"/>
+    <!-- camera permission -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- audio permission -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- storage permission -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <!-- From Android 11 API 30 storage need -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
 
     <!-- The following comment will be replaced upon deployment with default features based on the dependencies of the application.
@@ -24,16 +29,17 @@
         android:normalScreens="true"
         android:anyDensity="true"
         android:smallScreens="true"/>
+    <!-- Equal Android 10 API 29 storage need requestLegacyExternalStorage -->
     <application android:hardwareAccelerated="true"
         android:name="com.gongjianbo.demo.MyApplication"
         android:label="HelloQtAndroid"
-        android:extractNativeLibs="true">
+        android:extractNativeLibs="true"
+        android:requestLegacyExternalStorage="true">
         <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density"
             android:name="com.gongjianbo.demo.MainActivity"
             android:label="HelloQtAndroid"
             android:screenOrientation="unspecified"
-            android:launchMode="singleTop"
-            android:requestLegacyExternalStorage="true">
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
