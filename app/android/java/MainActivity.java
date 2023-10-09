@@ -46,7 +46,7 @@ public class MainActivity extends QtActivity {
     public static void verifyCameraPermissions(Activity activity) {
         int request_code = 1;
         if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            // 如果没有，获取读取和写入动态权限
+            // 如果没有，获取相机权限
             ActivityCompat.requestPermissions(activity, new String[]{
                     Manifest.permission.CAMERA
             }, request_code);

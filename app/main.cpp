@@ -7,7 +7,7 @@
 #include <QtAndroidExtras/QtAndroid>
 #define READ_EXTERNAL_STORAGE "android.permission.READ_EXTERNAL_STORAGE"
 #define WRITE_EXTERNAL_STORAGE "android.permission.WRITE_EXTERNAL_STORAGE"
-// 动态申请存储权限
+// 动态申请存储权限，但是对于安卓 11 的 ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION，Qt5 没现成接口
 void checkPermission()
 {
     QtAndroid::PermissionResult r = QtAndroid::checkPermission(WRITE_EXTERNAL_STORAGE);
