@@ -8,7 +8,8 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
-
+import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Toast;
@@ -52,7 +53,12 @@ public class USBMonitor {
         public void run() {
             Log.e(LogTag, String.format("init Runable doing. 0x%x", Thread.currentThread().getId()));
             manager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
-            permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_UPDATE_CURRENT);
+            Intent intent = new Intent(ACTION_USB_PERMISSION);
+            intent.setPackage(context.getPackageName());
+            // API 31 之后 flag 不能单独设置 PendingIntent.FLAG_UPDATE_CURRENT
+            // PendingIntent.FLAG_IMMUTABLE 没法在授权后获取到设备信息，所以用 PendingIntent.FLAG_MUTABLE
+            int flags = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_MUTABLE : 0) | PendingIntent.FLAG_UPDATE_CURRENT;
+            permissionIntent = PendingIntent.getBroadcast(context, 0, intent, flags);
 
             IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
             filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
@@ -84,7 +90,7 @@ public class USBMonitor {
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
             Log.e(LogTag, String.format("state onReceive %s. 0x%x", action, Thread.currentThread().getId()));
-            UsbDevice usb_device = (UsbDevice) intent.getExtras().get("device");
+            UsbDevice usb_device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
             if (usb_device == null) {
                 Log.e(LogTag, String.format("usb_device is null."));
                 return;
