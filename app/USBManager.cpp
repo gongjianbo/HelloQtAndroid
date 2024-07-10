@@ -4,7 +4,6 @@
 #include <QtAndroidExtras/QtAndroid>
 #include <QMetaObject>
 #include <QDebug>
-#include "libusb.h"
 
 static void deviceDescriptor(libusb_device *device)
 {
@@ -44,18 +43,19 @@ static void deviceDescriptor(libusb_device *device)
     }
 }
 
-static jboolean openDevice(JNIEnv * /*env*/, jobject /*thiz*/, jint fd, jint vid, jint pid)
+static jboolean openDevice(JNIEnv * env, jobject /*thiz*/, jint fd, jint vid, jint pid, jstring name)
 {
     bool ret = true;
-    QString info = QString("fd: 0x%1, vid: 0x%2, pid: 0x%3")
+    QString device_name = env->GetStringUTFChars(name, 0);
+    QString info = QString("fd: 0x%1, vid: 0x%2, pid: 0x%3, name: %4")
                        .arg(QString::number(fd, 16))
                        .arg(QString::number(vid, 16))
-                       .arg(QString::number(pid, 16));
+                       .arg(QString::number(pid, 16))
+                       .arg(device_name);
     qDebug() << __FUNCTION__ << info;
-    // 拿到 fd 就可以通过 libusb 的接口进行访问了
     if (ret) {
         QMetaObject::invokeMethod(USBManager::getInstance(), "connectDevice", Qt::QueuedConnection,
-                                  Q_ARG(int, fd), Q_ARG(int, vid), Q_ARG(int, pid));
+                                  Q_ARG(int, fd), Q_ARG(int, vid), Q_ARG(int, pid), Q_ARG(QString, device_name));
     }
     return ret;
 }
@@ -69,7 +69,7 @@ static void closeDevice(JNIEnv * /*env*/, jobject /*thiz*/)
 static void initUsbManager()
 {
     JNINativeMethod methods[] =
-        {{"openDevice", "(III)Z", reinterpret_cast<void *>(openDevice)},
+        {{"openDevice", "(IIILjava/lang/String;)Z", reinterpret_cast<void *>(openDevice)},
          {"closeDevice", "()V", reinterpret_cast<void *>(closeDevice)}};
 
     // 通过自定义的 Application 获取 context，也可以通过当前 activity 获取
@@ -134,12 +134,29 @@ bool USBManager::getIsOpen() const
     return mIsOpen;
 }
 
-void USBManager::connectDevice(int fd, int vid, int pid)
+void USBManager::connectDevice(int fd, int vid, int pid, const QString &name)
 {
     mFd = fd;
     mVid = vid;
     mPid = pid;
+    mBusNum = 0;
+    mDevAddr = 0;
+    mUsbFs = QByteArray();
+    const QStringList device_split = name.split('/');
+    const int len = device_split.size();
+    if (len > 2) {
+        mBusNum = device_split.at(len - 2).toInt();
+        mDevAddr = device_split.at(len - 1).toInt();
+        for (int i = 1; i < len - 2; i++) {
+            mUsbFs.append("/");
+            mUsbFs.append(device_split.at(i).toLatin1());
+        }
+    }
+    if (mUsbFs.isEmpty()) {
+        mUsbFs = "/dev/bus/usb";
+    }
     mDeviceInfo = QString("vid(0x%1) pid(0x%2)").arg(QString::number(vid, 16)).arg(QString::number(pid, 16));
+    qDebug() << mDeviceInfo << mBusNum << mDevAddr << mUsbFs;
     emit deviceInfoChanged();
     testOpen();
 }
@@ -153,20 +170,24 @@ void USBManager::disconnectDevice()
 
 void USBManager::testOpen(int mode)
 {
-    qDebug() << __FUNCTION__ << mode;
     testClose();
     if (mode != TestNone) {
         mDeviceMode = mode;
         emit deviceModeChanged();
     }
+    qDebug() << __FUNCTION__ << mDeviceMode;
+    bool open_ret = false;
     switch (mDeviceMode) {
     case TestUsb:
-        if (doOpenUsb(mFd)) {
-            mIsOpen = true;
-            emit stateChanged();
-        }
+        open_ret = doOpenUsb(mFd);
         break;
-    case TestUvc: break;
+    case TestUvc:
+        open_ret = doOpenUvc(mFd, mVid, mPid, mBusNum, mDevAddr, mUsbFs);
+        break;
+    }
+    if (open_ret) {
+        mIsOpen = true;
+        emit stateChanged();
     }
 }
 
@@ -176,7 +197,9 @@ void USBManager::testClose()
     case TestUsb:
         doCloseUsb();
         break;
-    case TestUvc: break;
+    case TestUvc:
+        doCloseUvc();
+        break;
     }
     mIsOpen = false;
     emit stateChanged();
@@ -208,7 +231,7 @@ bool USBManager::doOpenUsb(int fd)
     usbDevice = libusb_get_device(devh);
     deviceDescriptor(usbDevice);
     usb_ret = libusb_claim_interface(usbHandle, 0);
-    if (usb_ret) {
+    if (usb_ret < 0) {
         qDebug() << "libusb_claim_interface error." << usb_ret << libusb_strerror(usb_ret);
         usbHandle = nullptr;
         usbDevice = nullptr;
@@ -223,11 +246,103 @@ void USBManager::doCloseUsb()
 {
     if (usbHandle) {
         libusb_release_interface(usbHandle, 0);
+        usbHandle = nullptr;
     }
-    usbDevice = nullptr;
-    usbHandle = nullptr;
+    if (usbDevice) {
+        libusb_unref_device(usbDevice);
+        usbDevice = nullptr;
+    }
     if (usbCtx) {
         libusb_exit(usbCtx);
         usbCtx = nullptr;
+    }
+}
+
+bool USBManager::doOpenUvc(int fd, int vid, int pid, int busNum, int devAddr, const QByteArray &usbFs)
+{
+    uvc_error_t uvc_ret = UVC_SUCCESS;
+    uvc_ret = uvc_init2(&uvcCtx, nullptr, usbFs.data());
+    if (uvc_ret < 0) {
+        qDebug() << "uvc_init failed:" << uvc_ret << uvc_strerror(uvc_ret);
+        return false;
+    }
+    uvc_ret = uvc_get_device_with_fd(uvcCtx, &uvcDevice, vid, pid, nullptr, fd, busNum, devAddr);
+    if (uvc_ret < 0) {
+        qDebug() << "uvc_get_device_with_fd failed:" << uvc_ret << uvc_strerror(uvc_ret);
+        return false;
+    }
+    uvc_ret = uvc_open(uvcDevice, &uvcHandle);
+    if (uvc_ret < 0) {
+        qDebug() << "uvc_open failed:" << uvc_ret << uvc_strerror(uvc_ret);
+        return false;
+    }
+    int cur_width = 0;
+    int cur_height = 0;
+    uvc_frame_format cur_format = UVC_FRAME_FORMAT_UNKNOWN;
+    // 遍历格式
+    if (uvcHandle->info->stream_ifs) {
+        uvc_streaming_interface_t *stream_if = uvcHandle->info->stream_ifs;
+        for (int i = 0; stream_if; stream_if = stream_if->next, i++)
+        {
+            uvc_format_desc_t *fmt_desc = stream_if->format_descs;
+            for (int j = 0; fmt_desc; fmt_desc = fmt_desc->next, j++)
+            {
+                switch (fmt_desc->bDescriptorSubtype)
+                {
+                case UVC_VS_FORMAT_UNCOMPRESSED:
+                    qDebug() << "UVC_VS_FORMAT_UNCOMPRESSED" << fmt_desc->bDefaultFrameIndex;
+                    break;
+                case UVC_VS_FORMAT_MJPEG:
+                    qDebug() << "UVC_VS_FORMAT_MJPEG" << fmt_desc->bDefaultFrameIndex;
+                    break;
+                default: continue;
+                }
+                uvc_frame_desc_t *frame_desc = fmt_desc->frame_descs;
+                for (int k = 0; frame_desc; frame_desc = frame_desc->next, k++)
+                {
+                    qDebug() << QString("size: %1 x %2").arg(frame_desc->wWidth).arg(frame_desc->wHeight);
+                    // 取第一个宽高来设置
+                    if (cur_width == 0) {
+                        cur_width = frame_desc->wWidth;
+                        cur_height = frame_desc->wHeight;
+                        cur_format = (fmt_desc->bDescriptorSubtype == UVC_VS_FORMAT_MJPEG) ? UVC_FRAME_FORMAT_MJPEG : UVC_FRAME_FORMAT_YUYV;
+                    }
+                }
+            }
+        }
+    }
+    // 按键回调，启动视频流后才会触发
+    uvc_set_button_callback(uvcHandle, [](int button, int state, void *){
+            // 1-1 按下, 1-0 弹起
+            qDebug() << "uvc button callback" << button << state;
+        }, nullptr);
+    uvc_ret = uvc_get_stream_ctrl_format_size_fps(uvcHandle, &uvcCtrl, cur_format, cur_width, cur_height, 1, 30);
+    if (uvc_ret < 0) {
+        qDebug() << "uvc_get_stream_ctrl_format_size failed:" << uvc_ret << uvc_strerror(uvc_ret);
+    }
+    // targetSdkVersion 如果 >=28 启动视频流后拔出设备 uvc_close 会崩掉，暂时设置为 27
+    uvc_ret = uvc_start_streaming(uvcHandle, &uvcCtrl, [](struct uvc_frame *frame, void *){
+            qDebug() << "uvc stream callback" << frame->width << frame->height << frame->frame_format;
+        }, nullptr, 0);
+    if (uvc_ret < 0) {
+        qDebug() << "uvc_start_streaming failed:" << uvc_ret << uvc_strerror(uvc_ret);
+    }
+    return true;
+}
+
+void USBManager::doCloseUvc()
+{
+    qDebug() << __FUNCTION__;
+    if (uvcHandle) {
+        uvc_close(uvcHandle);
+        uvcHandle = nullptr;
+    }
+    if (uvcDevice) {
+        uvc_unref_device(uvcDevice);
+        uvcDevice = nullptr;
+    }
+    if (uvcCtx) {
+        uvc_exit(uvcCtx);
+        uvcCtx = nullptr;
     }
 }

@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Toast;
+import android.text.TextUtils;
 import android.util.Log;
 
 import java.util.HashMap;
@@ -120,6 +121,7 @@ public class USBMonitor {
     };
 
     private boolean onAttach(final UsbDevice device) {
+        Log.e(LogTag, String.format("onAttach"));
         if (connection != null)
             return false;
         connection = manager.openDevice(device);
@@ -128,10 +130,11 @@ public class USBMonitor {
             return false;
         }
 
-        int fd = connection.getFileDescriptor();
-        int vid = device.getVendorId();
-        int pid = device.getProductId();
-        if (openDevice(fd, vid, pid)) {
+        final int fd = connection.getFileDescriptor();
+        final int vid = device.getVendorId();
+        final int pid = device.getProductId();
+        final String name = device.getDeviceName();
+        if (openDevice(fd, vid, pid, name)) {
             connectDevice = device;
             return true;
         } else {
@@ -143,6 +146,7 @@ public class USBMonitor {
     }
 
     private void onDetach(final UsbDevice device) {
+        Log.e(LogTag, String.format("onDetach"));
         // 这里只判断了 vid pid，但不一定就是实际打开的设备
         if (connection != null &&
             connectDevice.getVendorId() == device.getVendorId() &&
@@ -153,7 +157,7 @@ public class USBMonitor {
         }
     }
 
-    public native boolean openDevice(int fd, int vid, int pid);
+    public native boolean openDevice(int fd, int vid, int pid, String name);
 
     public native void closeDevice();
 }

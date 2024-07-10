@@ -347,7 +347,7 @@ typedef struct uvc_stream_ctrl {
   uint8_t bInterfaceNumber;
 } uvc_stream_ctrl_t;
 
-uvc_error_t uvc_init(uvc_context_t **ctx, struct libusb_context *usb_ctx);
+uvc_error_t uvc_init(uvc_context_t **ctx, struct libusb_uvc_context *usb_ctx);
 void uvc_exit(uvc_context_t *ctx);
 
 uvc_error_t uvc_get_device_list(
@@ -375,7 +375,7 @@ uvc_error_t uvc_open(
 void uvc_close(uvc_device_handle_t *devh);
 
 uvc_device_t *uvc_get_device(uvc_device_handle_t *devh);
-libusb_device_handle *uvc_get_libusb_handle(uvc_device_handle_t *devh);
+libusb_uvc_device_handle *uvc_get_libusb_uvc_handle(uvc_device_handle_t *devh);
 
 void uvc_ref_device(uvc_device_t *dev);
 void uvc_unref_device(uvc_device_t *dev);

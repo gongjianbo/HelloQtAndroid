@@ -11,7 +11,6 @@
 #include <string.h>
 #include <pthread.h>
 #include <signal.h>
-#include "utilbase.h"
 #include "utlist.h"
 
 //#define UVC_DEBUGGING
@@ -227,12 +226,12 @@ struct uvc_stream_ctrl;
 struct uvc_device {
   struct uvc_context *ctx;
   int ref;
-  libusb_device *usb_dev;
+  libusb_uvc_device *usb_dev;
 };
 
 typedef struct uvc_device_info {
   /** Configuration descriptor for USB device */
-  struct libusb_config_descriptor *config;
+  struct libusb_uvc_config_descriptor *config;
   /** VideoControl interface provided by device */
   uvc_control_interface_t ctrl_if;
   /** VideoStreaming interfaces on the device */
@@ -277,7 +276,7 @@ struct uvc_stream_handle {
   uint32_t last_polled_seq;
   uvc_frame_callback_t *user_cb;
   void *user_ptr;
-  struct libusb_transfer *transfers[LIBUVC_NUM_TRANSFER_BUFS];
+  struct libusb_uvc_transfer *transfers[LIBUVC_NUM_TRANSFER_BUFS];
   uint8_t *transfer_bufs[LIBUVC_NUM_TRANSFER_BUFS];
   struct uvc_frame frame;
   enum uvc_frame_format frame_format;
@@ -291,9 +290,9 @@ struct uvc_device_handle {
   struct uvc_device *dev;
   struct uvc_device_handle *prev, *next;
   /** Underlying USB device handle */
-  libusb_device_handle *usb_devh;
+  libusb_uvc_device_handle *usb_devh;
   struct uvc_device_info *info;
-  struct libusb_transfer *status_xfer;
+  struct libusb_uvc_transfer *status_xfer;
   pthread_mutex_t status_mutex;	// XXX saki
   uint8_t status_buf[32];
   /** Function to call when we receive status updates from the camera */
@@ -312,7 +311,7 @@ struct uvc_device_handle {
 /** Context within which we communicate with devices */
 struct uvc_context {
   /** Underlying context for USB communication */
-  struct libusb_context *usb_ctx;
+  struct libusb_uvc_context *usb_ctx;
   /** True if libuvc initialized the underlying USB context */
   uint8_t own_usb_ctx;
   /** List of open devices in this context */

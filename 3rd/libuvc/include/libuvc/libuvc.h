@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #include <stdio.h> // FILE
-#include <libusb/libusb.h>
+#include <libusb/libusb_uvc.h>
 #include <libuvc/libuvc_config.h>
 
 /** UVC error types, based on libusb errors
@@ -521,8 +521,8 @@ typedef struct uvc_stream_ctrl {
 	uint8_t bInterfaceNumber;
 } uvc_stream_ctrl_t;
 
-uvc_error_t uvc_init(uvc_context_t **ctx, struct libusb_context *usb_ctx);
-uvc_error_t uvc_init2(uvc_context_t **ctx, struct libusb_context *usb_ctx, const char *usbfs);
+uvc_error_t uvc_init(uvc_context_t **ctx, struct libusb_uvc_context *usb_ctx);
+uvc_error_t uvc_init2(uvc_context_t **ctx, struct libusb_uvc_context *usb_ctx, const char *usbfs);
 void uvc_exit(uvc_context_t *ctx);
 
 uvc_error_t uvc_get_device_list(uvc_context_t *ctx, uvc_device_t ***list);
@@ -550,7 +550,7 @@ void uvc_close(uvc_device_handle_t *devh);
 uvc_error_t uvc_set_reset_altsetting(uvc_device_handle_t *devh, uint8_t reset_on_release_if);
 
 uvc_device_t *uvc_get_device(uvc_device_handle_t *devh);
-libusb_device_handle *uvc_get_libusb_handle(uvc_device_handle_t *devh);
+libusb_uvc_device_handle *uvc_get_libusb_uvc_handle(uvc_device_handle_t *devh);
 
 void uvc_ref_device(uvc_device_t *dev);
 void uvc_unref_device(uvc_device_t *dev);
@@ -833,10 +833,10 @@ void uvc_print_format_desc(uvc_format_desc_t *format_descriptors, FILE *stream);
 void uvc_print_device_desc(uvc_device_handle_t *devh, FILE *stream);
 void uvc_print_configuration_desc(uvc_device_handle_t *devh, FILE *stream);
 void uvc_print_interface_desc(
-	const struct libusb_interface *interface, const int num_interface,
+	const struct libusb_uvc_interface *interface, const int num_interface,
 	const char *prefix, FILE *stream);
 void uvc_print_endpoint_desc(
-	const struct libusb_endpoint_descriptor *endpoint, const int num_endpoint,
+	const struct libusb_uvc_endpoint_descriptor *endpoint, const int num_endpoint,
 	const char *prefix, FILE *stream);
 
 #define uvc_print_format_descriptor_one uvc_print_format_desc_one

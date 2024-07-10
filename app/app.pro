@@ -51,9 +51,13 @@ android{
     INCLUDEPATH += $$PWD/../3rd/libuvc/include
     LIBS += $$PWD/../3rd/libusb/lib/android/$${ANDROID_TARGET_ARCH}/libusb1.0.so
     LIBS += $$PWD/../3rd/libuvc/lib/android/$${ANDROID_TARGET_ARCH}/libuvc.so
+    LIBS += $$PWD/../3rd/libuvc/lib/android/$${ANDROID_TARGET_ARCH}/libusb_uvc.so
+    LIBS += $$PWD/../3rd/libuvc/lib/android/$${ANDROID_TARGET_ARCH}/libjpegturbo_uvc.so
     for(abi, ANDROID_ABIS){
         ANDROID_EXTRA_LIBS += $$PWD/../3rd/libusb/lib/android/$${abi}/libusb1.0.so
         ANDROID_EXTRA_LIBS += $$PWD/../3rd/libuvc/lib/android/$${abi}/libuvc.so
+        ANDROID_EXTRA_LIBS += $$PWD/../3rd/libuvc/lib/android/$${abi}/libusb_uvc.so
+        ANDROID_EXTRA_LIBS += $$PWD/../3rd/libuvc/lib/android/$${abi}/libjpegturbo_uvc.so
     }
 }
 
