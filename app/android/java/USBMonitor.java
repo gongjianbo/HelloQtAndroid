@@ -72,7 +72,7 @@ public class USBMonitor {
                     Log.e(LogTag, String.format("usb_device is null."));
                     continue;
                 }
-                String msg = "Attached vid:" + usb_device.getVendorId() + " pid:" + usb_device.getProductId();
+                String msg = String.format("Attached vid: 0x%x  pid: 0x%x", usb_device.getVendorId(), usb_device.getProductId());
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
                 if (!manager.hasPermission(usb_device)) {
                     manager.requestPermission(usb_device, permissionIntent);
@@ -103,7 +103,7 @@ public class USBMonitor {
                 }
                 onAttach(usb_device);
             } else if (action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
-                String msg = "Attached vid:" + usb_device.getVendorId() + " pid:" + usb_device.getProductId();
+                String msg = String.format("Attached vid: 0x%x  pid: 0x%x", usb_device.getVendorId(), usb_device.getProductId());
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
                 if (!manager.hasPermission(usb_device)) {
                     Log.e(LogTag, String.format("request permission."));
@@ -112,7 +112,7 @@ public class USBMonitor {
                 }
                 onAttach(usb_device);
             } else if (action == UsbManager.ACTION_USB_DEVICE_DETACHED) {
-                String msg = "Detached vid:" + usb_device.getVendorId() + " pid:" + usb_device.getProductId();
+                String msg = String.format("Detached vid: 0x%x  pid: 0x%x", usb_device.getVendorId(), usb_device.getProductId());
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
                 onDetach(usb_device);
             }

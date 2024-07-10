@@ -20,22 +20,22 @@ Window {
             text: "Hello Qt Android"
         }
         Text {
-            text: String("USB %1").arg(usbManager.isOpen ? usbManager.deviceInfo : "None")
+            text: String("USB %1").arg(usbManager.deviceInfo)
         }
         Row {
             spacing: 20
             Button {
                 id: btn_usb
-                text: "USB"
+                text: String("USB %1").arg((usbManager.deviceMode === USBManager.TestUsb && usbManager.isOpen) ? "[ON]" : "[OFF]")
                 onClicked: {
-                    usbManager.testUsb()
+                    usbManager.testOpen(USBManager.TestUsb)
                 }
             }
             Button {
                 id: btn_uvc
-                text: "UVC"
+                text: String("UVC %1").arg((usbManager.deviceMode === USBManager.TestUvc && usbManager.isOpen) ? "[ON]" : "[OFF]")
                 onClicked: {
-                    usbManager.testUvc()
+                    usbManager.testOpen(USBManager.TestUvc)
                 }
             }
         }

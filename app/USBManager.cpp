@@ -54,7 +54,7 @@ static jboolean openDevice(JNIEnv * /*env*/, jobject /*thiz*/, jint fd, jint vid
     qDebug() << __FUNCTION__ << info;
     // 拿到 fd 就可以通过 libusb 的接口进行访问了
     if (ret) {
-        QMetaObject::invokeMethod(USBManager::getInstance(), "openDevice", Qt::QueuedConnection,
+        QMetaObject::invokeMethod(USBManager::getInstance(), "connectDevice", Qt::QueuedConnection,
                                   Q_ARG(int, fd), Q_ARG(int, vid), Q_ARG(int, pid));
     }
     return ret;
@@ -63,7 +63,7 @@ static jboolean openDevice(JNIEnv * /*env*/, jobject /*thiz*/, jint fd, jint vid
 static void closeDevice(JNIEnv * /*env*/, jobject /*thiz*/)
 {
     qDebug() << __FUNCTION__;
-    QMetaObject::invokeMethod(USBManager::getInstance(), "closeDevice", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(USBManager::getInstance(), "disconnectDevice", Qt::QueuedConnection);
 }
 
 static void initUsbManager()
@@ -102,7 +102,7 @@ USBManager::USBManager()
 {
     qDebug() << __FUNCTION__;
     // 用全局对象管理在 libusb_exit 释放时可能卡死，改为构造和析构中调用
-    libusb_init(nullptr);
+    // libusb_init(nullptr);
     initUsbManager();
 }
 
@@ -115,13 +115,8 @@ USBManager *USBManager::getInstance()
 USBManager::~USBManager()
 {
     qDebug() << __FUNCTION__;
-    doClose();
-    libusb_exit(nullptr);
-}
-
-bool USBManager::getIsOpen() const
-{
-    return mIsOpen;
+    testClose();
+    // libusb_exit(nullptr);
 }
 
 QString USBManager::getDeviceInfo() const
@@ -129,48 +124,65 @@ QString USBManager::getDeviceInfo() const
     return mDeviceInfo;
 }
 
-void USBManager::openDevice(int fd, int vid, int pid)
+int USBManager::getDeviceMode() const
+{
+    return mDeviceMode;
+}
+
+bool USBManager::getIsOpen() const
+{
+    return mIsOpen;
+}
+
+void USBManager::connectDevice(int fd, int vid, int pid)
 {
     mFd = fd;
     mVid = vid;
     mPid = pid;
-    if (!doOpen(fd))
-        return;
-    mIsOpen = true;
     mDeviceInfo = QString("vid(0x%1) pid(0x%2)").arg(QString::number(vid, 16)).arg(QString::number(pid, 16));
-    emit deviceChanged();
+    emit deviceInfoChanged();
+    testOpen();
 }
 
-void USBManager::closeDevice()
+void USBManager::disconnectDevice()
 {
-    doClose();
-    mFd = 0;
-    mVid = 0;
-    mPid = 0;
+    testClose();
+    mDeviceInfo = QString();
+    emit deviceInfoChanged();
+}
+
+void USBManager::testOpen(int mode)
+{
+    qDebug() << __FUNCTION__ << mode;
+    testClose();
+    if (mode != TestNone) {
+        mDeviceMode = mode;
+        emit deviceModeChanged();
+    }
+    switch (mDeviceMode) {
+    case TestUsb:
+        if (doOpenUsb(mFd)) {
+            mIsOpen = true;
+            emit stateChanged();
+        }
+        break;
+    case TestUvc: break;
+    }
+}
+
+void USBManager::testClose()
+{
+    switch (mDeviceMode) {
+    case TestUsb:
+        doCloseUsb();
+        break;
+    case TestUvc: break;
+    }
     mIsOpen = false;
-    mDeviceInfo.clear();
-    emit deviceChanged();
+    emit stateChanged();
 }
 
-void USBManager::testUsb()
-{
-    qDebug() << __FUNCTION__;
-    if (getIsOpen()) {
-        closeDevice();
-    }
-    openDevice(mFd, mVid, mPid);
-}
-
-void USBManager::testUvc()
-{
-    qDebug() << __FUNCTION__;
-    if (getIsOpen()) {
-        closeDevice();
-    }
-    openDevice(mFd, mVid, mPid);
-}
-
-bool USBManager::doOpen(int fd)
+bool USBManager::doOpenUsb(int fd)
 {
     libusb_device_handle *devh = nullptr;
     int usb_ret = 0;
@@ -179,12 +191,12 @@ bool USBManager::doOpen(int fd)
         qDebug() << "libusb_set_option failed:" << usb_ret << libusb_strerror(usb_ret);
         return false;
     }
-    usb_ret = libusb_init(&fdCtx);
+    usb_ret = libusb_init(&usbCtx);
     if (usb_ret < 0) {
         qDebug() << "libusb_init failed:" << usb_ret << libusb_strerror(usb_ret);
         return false;
     }
-    usb_ret = libusb_wrap_sys_device(fdCtx, (intptr_t)fd, &devh);
+    usb_ret = libusb_wrap_sys_device(usbCtx, (intptr_t)fd, &devh);
     if (usb_ret < 0) {
         qDebug() << "libusb_wrap_sys_device failed:" << usb_ret << libusb_strerror(usb_ret);
         return false;
@@ -192,30 +204,30 @@ bool USBManager::doOpen(int fd)
         qDebug() << "libusb_wrap_sys_device returned invalid handle";
         return false;
     }
-    mHandle = devh;
-    mDevice = libusb_get_device(devh);
-    deviceDescriptor(mDevice);
-    usb_ret = libusb_claim_interface(mHandle, 0);
+    usbHandle = devh;
+    usbDevice = libusb_get_device(devh);
+    deviceDescriptor(usbDevice);
+    usb_ret = libusb_claim_interface(usbHandle, 0);
     if (usb_ret) {
         qDebug() << "libusb_claim_interface error." << usb_ret << libusb_strerror(usb_ret);
-        mHandle = nullptr;
-        mDevice = nullptr;
-        libusb_exit(fdCtx);
-        fdCtx = nullptr;
+        usbHandle = nullptr;
+        usbDevice = nullptr;
+        libusb_exit(usbCtx);
+        usbCtx = nullptr;
         return false;
     }
     return true;
 }
 
-void USBManager::doClose()
+void USBManager::doCloseUsb()
 {
-    if (mHandle) {
-        libusb_release_interface(mHandle, 0);
+    if (usbHandle) {
+        libusb_release_interface(usbHandle, 0);
     }
-    mDevice = nullptr;
-    mHandle = nullptr;
-    if (fdCtx) {
-        libusb_exit(fdCtx);
-        fdCtx = nullptr;
+    usbDevice = nullptr;
+    usbHandle = nullptr;
+    if (usbCtx) {
+        libusb_exit(usbCtx);
+        usbCtx = nullptr;
     }
 }

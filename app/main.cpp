@@ -38,6 +38,7 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
 
     qmlRegisterType<FileTool>("GongJianBo", 1, 0, "FileTool");
+    qmlRegisterUncreatableType<USBManager>("GongJianBo", 1, 0, "USBManager", "USBManager is uncreatable type");
     engine.rootContext()->setContextProperty("usbManager", USBManager::getInstance());
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));
