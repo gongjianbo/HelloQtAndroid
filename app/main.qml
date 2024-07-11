@@ -13,6 +13,13 @@ Window {
         id: file_tool
     }
 
+    Connections {
+        target: usbManager
+        function onNewFrame(frame) {
+            video_item.updateFrame(frame)
+        }
+    }
+
     Column {
         anchors.centerIn: parent
         spacing: 12
@@ -37,6 +44,16 @@ Window {
                 onClicked: {
                     usbManager.testOpen(USBManager.TestUvc)
                 }
+            }
+        }
+        Rectangle {
+            width: 300
+            height: 200
+            border.color: "black"
+            VideoItem {
+                id: video_item
+                anchors.fill: parent
+                anchors.margins: 1
             }
         }
         Row {

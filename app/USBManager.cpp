@@ -3,7 +3,10 @@
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <QtAndroidExtras/QtAndroid>
 #include <QMetaObject>
+#include <QTime>
 #include <QDebug>
+// dup(fd)
+#include "unistd.h"
 
 static void deviceDescriptor(libusb_device *device)
 {
@@ -136,7 +139,7 @@ bool USBManager::getIsOpen() const
 
 void USBManager::connectDevice(int fd, int vid, int pid, const QString &name)
 {
-    mFd = fd;
+    mFd = dup(fd);
     mVid = vid;
     mPid = pid;
     mBusNum = 0;
@@ -164,6 +167,7 @@ void USBManager::connectDevice(int fd, int vid, int pid, const QString &name)
 void USBManager::disconnectDevice()
 {
     testClose();
+    close(mFd);
     mDeviceInfo = QString();
     emit deviceInfoChanged();
 }
@@ -182,7 +186,7 @@ void USBManager::testOpen(int mode)
         open_ret = doOpenUsb(mFd);
         break;
     case TestUvc:
-        open_ret = doOpenUvc(mFd, mVid, mPid, mBusNum, mDevAddr, mUsbFs);
+        open_ret = doOpenUvc(mFd);
         break;
     }
     if (open_ret) {
@@ -248,52 +252,47 @@ void USBManager::doCloseUsb()
         libusb_release_interface(usbHandle, 0);
         usbHandle = nullptr;
     }
-    if (usbDevice) {
-        libusb_unref_device(usbDevice);
-        usbDevice = nullptr;
-    }
+    usbDevice = nullptr;
     if (usbCtx) {
         libusb_exit(usbCtx);
         usbCtx = nullptr;
     }
 }
 
-bool USBManager::doOpenUvc(int fd, int vid, int pid, int busNum, int devAddr, const QByteArray &usbFs)
+bool USBManager::doOpenUvc(int fd)
 {
     uvc_error_t uvc_ret = UVC_SUCCESS;
-    uvc_ret = uvc_init2(&uvcCtx, nullptr, usbFs.data());
+    uvc_ret = uvc_init2(&uvcCtx, nullptr);
     if (uvc_ret < 0) {
         qDebug() << "uvc_init failed:" << uvc_ret << uvc_strerror(uvc_ret);
         return false;
     }
-    uvc_ret = uvc_get_device_with_fd(uvcCtx, &uvcDevice, vid, pid, nullptr, fd, busNum, devAddr);
+    uvc_ret = uvc_wrap(fd, uvcCtx, &uvcHandle);
     if (uvc_ret < 0) {
-        qDebug() << "uvc_get_device_with_fd failed:" << uvc_ret << uvc_strerror(uvc_ret);
-        return false;
-    }
-    uvc_ret = uvc_open(uvcDevice, &uvcHandle);
-    if (uvc_ret < 0) {
-        qDebug() << "uvc_open failed:" << uvc_ret << uvc_strerror(uvc_ret);
+        qDebug() << "uvc_wrap failed:" << uvc_ret << uvc_strerror(uvc_ret);
         return false;
     }
     int cur_width = 0;
     int cur_height = 0;
     uvc_frame_format cur_format = UVC_FRAME_FORMAT_UNKNOWN;
+    qDebug() << "stream_ifs" << !!uvcHandle->info->stream_ifs;
     // 遍历格式
     if (uvcHandle->info->stream_ifs) {
         uvc_streaming_interface_t *stream_if = uvcHandle->info->stream_ifs;
         for (int i = 0; stream_if; stream_if = stream_if->next, i++)
         {
+            qDebug() << "UVC Format i" << i;
             uvc_format_desc_t *fmt_desc = stream_if->format_descs;
             for (int j = 0; fmt_desc; fmt_desc = fmt_desc->next, j++)
             {
+                qDebug() << "UVC Format j" << j << fmt_desc->bDefaultFrameIndex;
                 switch (fmt_desc->bDescriptorSubtype)
                 {
                 case UVC_VS_FORMAT_UNCOMPRESSED:
-                    qDebug() << "UVC_VS_FORMAT_UNCOMPRESSED" << fmt_desc->bDefaultFrameIndex;
+                    qDebug() << "UVC_VS_FORMAT_UNCOMPRESSED";
                     break;
                 case UVC_VS_FORMAT_MJPEG:
-                    qDebug() << "UVC_VS_FORMAT_MJPEG" << fmt_desc->bDefaultFrameIndex;
+                    qDebug() << "UVC_VS_FORMAT_MJPEG";
                     break;
                 default: continue;
                 }
@@ -316,14 +315,47 @@ bool USBManager::doOpenUvc(int fd, int vid, int pid, int busNum, int devAddr, co
             // 1-1 按下, 1-0 弹起
             qDebug() << "uvc button callback" << button << state;
         }, nullptr);
-    uvc_ret = uvc_get_stream_ctrl_format_size_fps(uvcHandle, &uvcCtrl, cur_format, cur_width, cur_height, 1, 30);
+    uvc_ret = uvc_get_stream_ctrl_format_size(uvcHandle, &uvcCtrl, cur_format, cur_width, cur_height, 0);
     if (uvc_ret < 0) {
         qDebug() << "uvc_get_stream_ctrl_format_size failed:" << uvc_ret << uvc_strerror(uvc_ret);
     }
-    // targetSdkVersion 如果 >=28 启动视频流后拔出设备 uvc_close 会崩掉，暂时设置为 27
-    uvc_ret = uvc_start_streaming(uvcHandle, &uvcCtrl, [](struct uvc_frame *frame, void *){
-            qDebug() << "uvc stream callback" << frame->width << frame->height << frame->frame_format;
-        }, nullptr, 0);
+    uvc_ret = uvc_start_streaming(uvcHandle, &uvcCtrl, [](struct uvc_frame *frame, void *userData){
+            if (!frame) return;
+            static int i = 0;
+            qDebug() << "uvc stream callback" << frame->width << frame->height << frame->frame_format << QTime::currentTime() << i++;
+            // return;
+            USBManager *manager = static_cast<USBManager *>(userData);
+            if (manager) {
+                // TODO 数据拷贝出来放到解析的线程种处理
+                uvc_frame_t *copy = uvc_allocate_frame(frame->data_bytes);
+                if (!copy) return;
+                uvc_error_t err = uvc_duplicate_frame(frame, copy);
+                if (err) {
+                    uvc_free_frame(copy);
+                } else {
+                    uvc_frame_t *rgb = uvc_allocate_frame(frame->data_bytes);
+                    QImage image;
+                    // TODO 暂时用rgb，后面把yuv处理加上
+                    if (!rgb) {
+                    } if (frame->frame_format == UVC_FRAME_FORMAT_MJPEG) {
+                        uvc_error_t err = uvc_mjpeg2rgb(copy, rgb);
+                        if (!err) {
+                            image = QImage((const uchar *)rgb->data, rgb->width, rgb->height,
+                                           rgb->width * 3, QImage::Format_RGB888);
+                        }
+                    } else if (frame->frame_format == UVC_FRAME_FORMAT_YUYV) {
+                        uvc_error_t err = uvc_yuyv2rgb(copy, rgb);
+                        if (!err) {
+                            image = QImage((const uchar *)rgb->data, rgb->width, rgb->height,
+                                           rgb->width * 3, QImage::Format_RGB888);
+                        }
+                    }
+                    uvc_free_frame(copy);
+                    uvc_free_frame(rgb);
+                    manager->newFrame(image);
+                }
+            }
+        }, this, 0);
     if (uvc_ret < 0) {
         qDebug() << "uvc_start_streaming failed:" << uvc_ret << uvc_strerror(uvc_ret);
     }
@@ -337,10 +369,7 @@ void USBManager::doCloseUvc()
         uvc_close(uvcHandle);
         uvcHandle = nullptr;
     }
-    if (uvcDevice) {
-        uvc_unref_device(uvcDevice);
-        uvcDevice = nullptr;
-    }
+    // uvcDevice = nullptr;
     if (uvcCtx) {
         uvc_exit(uvcCtx);
         uvcCtx = nullptr;

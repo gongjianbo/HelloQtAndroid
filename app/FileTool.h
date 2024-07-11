@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 
+// 文件操作
 class FileTool : public QObject
 {
     Q_OBJECT

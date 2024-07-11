@@ -13,11 +13,13 @@ DESTDIR = $$PWD/../bin
 
 HEADERS += \
     FileTool.h \
-    USBManager.h
+    USBManager.h \
+    VideoItem.h
 
 SOURCES += \
     FileTool.cpp \
     USBManager.cpp \
+    VideoItem.cpp \
     main.cpp
 
 RESOURCES += qml.qrc
@@ -49,15 +51,15 @@ android{
     # ANDROID_ABIS = arm64-v8a armeabi-v7a x86 x86_64
     INCLUDEPATH += $$PWD/../3rd/libusb/include
     INCLUDEPATH += $$PWD/../3rd/libuvc/include
-    LIBS += $$PWD/../3rd/libusb/lib/android/$${ANDROID_TARGET_ARCH}/libusb1.0.so
+    # LIBS += $$PWD/../3rd/libusb/lib/android/$${ANDROID_TARGET_ARCH}/libusb1.0.so
     LIBS += $$PWD/../3rd/libuvc/lib/android/$${ANDROID_TARGET_ARCH}/libuvc.so
-    LIBS += $$PWD/../3rd/libuvc/lib/android/$${ANDROID_TARGET_ARCH}/libusb_uvc.so
-    LIBS += $$PWD/../3rd/libuvc/lib/android/$${ANDROID_TARGET_ARCH}/libjpegturbo_uvc.so
+    LIBS += $$PWD/../3rd/libuvc/lib/android/$${ANDROID_TARGET_ARCH}/libusb1.0.so
+    LIBS += $$PWD/../3rd/libuvc/lib/android/$${ANDROID_TARGET_ARCH}/libjpeg-turbo1.5.0.so
     for(abi, ANDROID_ABIS){
-        ANDROID_EXTRA_LIBS += $$PWD/../3rd/libusb/lib/android/$${abi}/libusb1.0.so
+        # ANDROID_EXTRA_LIBS += $$PWD/../3rd/libusb/lib/android/$${abi}/libusb1.0.so
         ANDROID_EXTRA_LIBS += $$PWD/../3rd/libuvc/lib/android/$${abi}/libuvc.so
-        ANDROID_EXTRA_LIBS += $$PWD/../3rd/libuvc/lib/android/$${abi}/libusb_uvc.so
-        ANDROID_EXTRA_LIBS += $$PWD/../3rd/libuvc/lib/android/$${abi}/libjpegturbo_uvc.so
+        ANDROID_EXTRA_LIBS += $$PWD/../3rd/libuvc/lib/android/$${abi}/libusb1.0.so
+        ANDROID_EXTRA_LIBS += $$PWD/../3rd/libuvc/lib/android/$${abi}/libjpeg-turbo1.5.0.so
     }
 }
 

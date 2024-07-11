@@ -1,9 +1,11 @@
 #pragma once
 #include <QObject>
+#include <QImage>
 #include "libusb.h"
 #include "libuvc/libuvc.h"
 #include "libuvc/libuvc_internal.h"
 
+// USB操作
 class USBManager : public QObject
 {
     Q_OBJECT
@@ -46,18 +48,19 @@ private:
     bool doOpenUsb(int fd);
     void doCloseUsb();
     // UVC 测试
-    bool doOpenUvc(int fd, int vid, int pid, int busNum, int devAddr, const QByteArray &usbFs);
+    bool doOpenUvc(int fd);
     void doCloseUvc();
 
 signals:
     void deviceInfoChanged();
     void deviceModeChanged();
     void stateChanged();
+    void newFrame(const QImage &image);
 
 private:
     // 设备状态
     QString mDeviceInfo;
-    int mDeviceMode{TestUvc};
+    int mDeviceMode{TestUsb};
     bool mIsOpen{false};
     // 设备信息
     int mFd{0};
@@ -76,7 +79,7 @@ private:
     // UVC 测试
     uvc_context_t *uvcCtx{nullptr};
     // 当前设备
-    uvc_device_t *uvcDevice{nullptr};
+    // uvc_device_t *uvcDevice{nullptr};
     uvc_device_handle_t *uvcHandle{nullptr};
     uvc_stream_ctrl_t uvcCtrl;
     // 视频格式

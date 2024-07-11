@@ -3,6 +3,7 @@
 #include <QQmlContext>
 #include "USBManager.h"
 #include "FileTool.h"
+#include "VideoItem.h"
 
 #include <QtAndroidExtras/QtAndroid>
 #define READ_EXTERNAL_STORAGE "android.permission.READ_EXTERNAL_STORAGE"
@@ -37,7 +38,9 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
+    qRegisterMetaType<QImage>("QImage");
     qmlRegisterType<FileTool>("GongJianBo", 1, 0, "FileTool");
+    qmlRegisterType<VideoItem>("GongJianBo", 1, 0, "VideoItem");
     qmlRegisterUncreatableType<USBManager>("GongJianBo", 1, 0, "USBManager", "USBManager is uncreatable type");
     engine.rootContext()->setContextProperty("usbManager", USBManager::getInstance());
 
