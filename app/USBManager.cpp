@@ -46,19 +46,22 @@ void deviceDescriptor(libusb_device *device)
     }
 }
 
-jboolean jniDeviceAttach(JNIEnv * env, jobject /*thiz*/, jint fd, jint vid, jint pid, jstring name)
+jboolean jniDeviceAttach(JNIEnv * env, jobject /*thiz*/, jint fd, jint vid, jint pid, jstring deviceName, jstring productName)
 {
     bool ret = true;
-    QString device_name = env->GetStringUTFChars(name, 0);
-    QString info = QString("fd: 0x%1, vid: 0x%2, pid: 0x%3, name: %4")
+    QString device_name = env->GetStringUTFChars(deviceName, 0);
+    QString product_name = env->GetStringUTFChars(productName, 0);
+    QString info = QString("fd: 0x%1, vid: 0x%2, pid: 0x%3, device: %4, product: %5")
                        .arg(QString::number(fd, 16))
                        .arg(QString::number(vid, 16))
                        .arg(QString::number(pid, 16))
-                       .arg(device_name);
+                       .arg(device_name)
+                       .arg(product_name);
     qDebug() << __FUNCTION__ << info;
     if (ret) {
         QMetaObject::invokeMethod(USBManager::getInstance(), "onDeviceAttach", Qt::QueuedConnection,
-                                  Q_ARG(int, fd), Q_ARG(int, vid), Q_ARG(int, pid), Q_ARG(QString, device_name));
+                                  Q_ARG(int, fd), Q_ARG(int, vid), Q_ARG(int, pid),
+                                  Q_ARG(QString, device_name), Q_ARG(QString, product_name));
     }
     return ret;
 }
@@ -72,7 +75,7 @@ void jniDeviceDetach(JNIEnv * /*env*/, jobject /*thiz*/)
 void initUsbManager()
 {
     JNINativeMethod methods[] =
-        {{"jniDeviceAttach", "(IIILjava/lang/String;)Z", reinterpret_cast<void *>(jniDeviceAttach)},
+        {{"jniDeviceAttach", "(IIILjava/lang/String;Ljava/lang/String;)Z", reinterpret_cast<void *>(jniDeviceAttach)},
          {"jniDeviceDetach", "()V", reinterpret_cast<void *>(jniDeviceDetach)}};
 
     // 通过自定义的 Application 获取 context，也可以通过当前 activity 获取
@@ -137,7 +140,7 @@ bool USBManager::getIsOpen() const
     return mIsOpen;
 }
 
-void USBManager::onDeviceAttach(int fd, int vid, int pid, const QString &name)
+void USBManager::onDeviceAttach(int fd, int vid, int pid, const QString &deviceName, const QString &productName)
 {
     mFd = dup(fd);
     mVid = vid;
@@ -145,7 +148,7 @@ void USBManager::onDeviceAttach(int fd, int vid, int pid, const QString &name)
     mBusNum = 0;
     mDevAddr = 0;
     mUsbFs = QByteArray();
-    const QStringList device_split = name.split('/');
+    const QStringList device_split = deviceName.split('/');
     const int len = device_split.size();
     if (len > 2) {
         mBusNum = device_split.at(len - 2).toInt();
@@ -159,6 +162,7 @@ void USBManager::onDeviceAttach(int fd, int vid, int pid, const QString &name)
         mUsbFs = "/dev/bus/usb";
     }
     mDeviceInfo = QString("vid(0x%1) pid(0x%2)").arg(QString::number(vid, 16)).arg(QString::number(pid, 16));
+    qDebug() << __FUNCTION__ << fd << vid << pid << deviceName << productName;
     qDebug() << mDeviceInfo << mBusNum << mDevAddr << mUsbFs;
     emit deviceInfoChanged();
     testOpen();

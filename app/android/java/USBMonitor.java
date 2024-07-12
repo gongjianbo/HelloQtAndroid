@@ -133,8 +133,9 @@ public class USBMonitor {
         final int fd = connection.getFileDescriptor();
         final int vid = device.getVendorId();
         final int pid = device.getProductId();
-        final String name = device.getDeviceName();
-        if (jniDeviceAttach(fd, vid, pid, name)) {
+        final String device_name = device.getDeviceName();
+        final String product_name = device.getProductName();
+        if (jniDeviceAttach(fd, vid, pid, device_name, product_name)) {
             connectDevice = device;
             return true;
         } else {
@@ -157,7 +158,7 @@ public class USBMonitor {
         }
     }
 
-    public native boolean jniDeviceAttach(int fd, int vid, int pid, String name);
+    public native boolean jniDeviceAttach(int fd, int vid, int pid, String deviceName, String productName);
 
     public native void jniDeviceDetach();
 }
