@@ -2,10 +2,15 @@
 package com.gongjianbo.demo;
 import org.qtproject.qt5.android.bindings.QtApplication;
 import android.app.Application;
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.util.Log;
  
 public class MyApplication extends QtApplication {
+    private static final String LogTag = "[MyApplication]";
     private static Context mContext;
+    private static Activity mActivity;
 
     @Override
     public void onCreate() {
@@ -16,5 +21,9 @@ public class MyApplication extends QtApplication {
 
     public static Context getContext() {
         return mContext;
+    }
+
+    public static void setActivity(Activity activity) {
+        mActivity = activity;
     }
 }

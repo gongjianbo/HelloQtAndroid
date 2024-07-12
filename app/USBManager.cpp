@@ -8,7 +8,7 @@
 // dup(fd)
 #include "unistd.h"
 
-static void deviceDescriptor(libusb_device *device)
+void deviceDescriptor(libusb_device *device)
 {
     if (!device)
         return;
@@ -46,7 +46,7 @@ static void deviceDescriptor(libusb_device *device)
     }
 }
 
-static jboolean openDevice(JNIEnv * env, jobject /*thiz*/, jint fd, jint vid, jint pid, jstring name)
+jboolean jniDeviceAttach(JNIEnv * env, jobject /*thiz*/, jint fd, jint vid, jint pid, jstring name)
 {
     bool ret = true;
     QString device_name = env->GetStringUTFChars(name, 0);
@@ -57,23 +57,23 @@ static jboolean openDevice(JNIEnv * env, jobject /*thiz*/, jint fd, jint vid, ji
                        .arg(device_name);
     qDebug() << __FUNCTION__ << info;
     if (ret) {
-        QMetaObject::invokeMethod(USBManager::getInstance(), "connectDevice", Qt::QueuedConnection,
+        QMetaObject::invokeMethod(USBManager::getInstance(), "onDeviceAttach", Qt::QueuedConnection,
                                   Q_ARG(int, fd), Q_ARG(int, vid), Q_ARG(int, pid), Q_ARG(QString, device_name));
     }
     return ret;
 }
 
-static void closeDevice(JNIEnv * /*env*/, jobject /*thiz*/)
+void jniDeviceDetach(JNIEnv * /*env*/, jobject /*thiz*/)
 {
     qDebug() << __FUNCTION__;
-    QMetaObject::invokeMethod(USBManager::getInstance(), "disconnectDevice", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(USBManager::getInstance(), "onDeviceDetach", Qt::QueuedConnection);
 }
 
-static void initUsbManager()
+void initUsbManager()
 {
     JNINativeMethod methods[] =
-        {{"openDevice", "(IIILjava/lang/String;)Z", reinterpret_cast<void *>(openDevice)},
-         {"closeDevice", "()V", reinterpret_cast<void *>(closeDevice)}};
+        {{"jniDeviceAttach", "(IIILjava/lang/String;)Z", reinterpret_cast<void *>(jniDeviceAttach)},
+         {"jniDeviceDetach", "()V", reinterpret_cast<void *>(jniDeviceDetach)}};
 
     // 通过自定义的 Application 获取 context，也可以通过当前 activity 获取
     QAndroidJniObject context = QAndroidJniObject::callStaticObjectMethod(
@@ -137,7 +137,7 @@ bool USBManager::getIsOpen() const
     return mIsOpen;
 }
 
-void USBManager::connectDevice(int fd, int vid, int pid, const QString &name)
+void USBManager::onDeviceAttach(int fd, int vid, int pid, const QString &name)
 {
     mFd = dup(fd);
     mVid = vid;
@@ -164,7 +164,7 @@ void USBManager::connectDevice(int fd, int vid, int pid, const QString &name)
     testOpen();
 }
 
-void USBManager::disconnectDevice()
+void USBManager::onDeviceDetach()
 {
     testClose();
     close(mFd);

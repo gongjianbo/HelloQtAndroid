@@ -42,7 +42,7 @@ public class USBMonitor {
     protected void finalize() {
         Log.e(LogTag, "free USBMonitor");
         if (connection != null) {
-            closeDevice();
+            jniDeviceDetach();
             connection.close();
             connection = null;
         }
@@ -134,7 +134,7 @@ public class USBMonitor {
         final int vid = device.getVendorId();
         final int pid = device.getProductId();
         final String name = device.getDeviceName();
-        if (openDevice(fd, vid, pid, name)) {
+        if (jniDeviceAttach(fd, vid, pid, name)) {
             connectDevice = device;
             return true;
         } else {
@@ -151,13 +151,13 @@ public class USBMonitor {
         if (connection != null &&
             connectDevice.getVendorId() == device.getVendorId() &&
             connectDevice.getProductId() == device.getProductId()) {
-            closeDevice();
+            jniDeviceDetach();
             connection.close();
             connection = null;
         }
     }
 
-    public native boolean openDevice(int fd, int vid, int pid, String name);
+    public native boolean jniDeviceAttach(int fd, int vid, int pid, String name);
 
-    public native void closeDevice();
+    public native void jniDeviceDetach();
 }

@@ -31,7 +31,7 @@ public class MainActivity extends QtActivity {
             getApplicationContext().equals(MyApplication.getContext())));
         Log.e(LogTag, String.format("getApplicationContext() equals Activity ? %b",
             getApplicationContext().equals(this)));
-        // 设置屏幕常量
+        // 设置屏幕常亮
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // 相机权限

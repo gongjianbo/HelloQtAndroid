@@ -35,9 +35,9 @@ public:
 
 public slots:
     // 设备连接
-    void connectDevice(int fd, int vid, int pid, const QString &name);
+    void onDeviceAttach(int fd, int vid, int pid, const QString &name);
     // 设备断开
-    void disconnectDevice();
+    void onDeviceDetach();
     // 打开
     void testOpen(int mode = TestNone);
     // 关闭
