@@ -49,8 +49,18 @@ void deviceDescriptor(libusb_device *device)
 jboolean jniDeviceAttach(JNIEnv * env, jobject /*thiz*/, jint fd, jint vid, jint pid, jstring deviceName, jstring productName)
 {
     bool ret = true;
-    QString device_name = env->GetStringUTFChars(deviceName, 0);
-    QString product_name = env->GetStringUTFChars(productName, 0);
+    QString device_name;
+    if (deviceName) {
+        const char *str = env->GetStringUTFChars(deviceName, 0);
+        device_name = str;
+        env->ReleaseStringUTFChars(deviceName, str);
+    }
+    QString product_name;
+    if (productName) {
+        const char *str = env->GetStringUTFChars(productName, 0);
+        product_name = str;
+        env->ReleaseStringUTFChars(productName, str);
+    }
     QString info = QString("fd: 0x%1, vid: 0x%2, pid: 0x%3, device: %4, product: %5")
                        .arg(QString::number(fd, 16))
                        .arg(QString::number(vid, 16))
