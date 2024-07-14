@@ -329,7 +329,7 @@ bool USBManager::doOpenUvc(int fd)
             // 1-1 按下, 1-0 弹起
             qDebug() << "uvc button callback" << button << state;
         }, nullptr);
-    uvc_ret = uvc_get_stream_ctrl_format_size(uvcHandle, &uvcCtrl, cur_format, cur_width, cur_height, 0);
+    uvc_ret = uvc_get_stream_ctrl_format_size(uvcHandle, &uvcCtrl, cur_format, cur_width, cur_height, 30);
     if (uvc_ret < 0) {
         qDebug() << "uvc_get_stream_ctrl_format_size failed:" << uvc_ret << uvc_strerror(uvc_ret);
     }
@@ -364,9 +364,9 @@ bool USBManager::doOpenUvc(int fd)
                                            rgb->width * 3, QImage::Format_RGB888);
                         }
                     }
+                    manager->newFrame(image.copy());
                     uvc_free_frame(copy);
                     uvc_free_frame(rgb);
-                    manager->newFrame(image);
                 }
             }
         }, this, 0);
