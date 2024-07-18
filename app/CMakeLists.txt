@@ -17,6 +17,8 @@ set(PROJECT_SOURCES
     FileTool.cpp
     USBManager.h
     USBManager.cpp
+    VideoItem.h
+    VideoItem.cpp
     main.cpp
     qml.qrc
 )
@@ -42,16 +44,33 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
     )
-    set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-                 ${CMAKE_CURRENT_SOURCE_DIR}/android CACHE INTERNAL "")
+    set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
+        QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android CACHE INTERNAL "")
 else()
     if(ANDROID)
         add_library(${PROJECT_NAME} SHARED ${PROJECT_SOURCES})
-    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android" CACHE INTERNAL "")
+        set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android" CACHE INTERNAL "")
     else()
         add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
     endif()
 endif()
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../3rd/libusb/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../3rd/libuvc/include
+)
+
+set(LibuvcSoDir ${CMAKE_CURRENT_SOURCE_DIR}/../3rd/libuvc/lib/android/${ANDROID_ABI})
+
+# target_link_directories(${PROJECT_NAME} PRIVATE
+#     ${CMAKE_CURRENT_SOURCE_DIR}/../3rd/libuvc/lib/android/${ANDROID_ABI}
+# )
+
+set(ANDROID_EXTRA_LIBS
+    ${LibuvcSoDir}/libjpeg-turbo1.5.0.so
+    ${LibuvcSoDir}/libusb1.0.so
+    ${LibuvcSoDir}/libuvc.so
+    CACHE INTERNAL "")
 
 target_link_libraries(${PROJECT_NAME}
     Qt${QT_VERSION_MAJOR}::Core
@@ -61,6 +80,9 @@ target_link_libraries(${PROJECT_NAME}
     Qt${QT_VERSION_MAJOR}::Qml
     Qt${QT_VERSION_MAJOR}::Concurrent
     Qt${QT_VERSION_MAJOR}::AndroidExtras
+    ${LibuvcSoDir}/libjpeg-turbo1.5.0.so
+    ${LibuvcSoDir}/libusb1.0.so
+    ${LibuvcSoDir}/libuvc.so
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
