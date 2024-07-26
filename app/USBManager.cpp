@@ -46,7 +46,7 @@ void deviceDescriptor(libusb_device *device)
     }
 }
 
-jboolean jniDeviceAttach(JNIEnv * env, jobject /*thiz*/, jint fd, jint vid, jint pid, jstring deviceName, jstring productName)
+jboolean jniDeviceAttach(JNIEnv *env, jobject /*thiz*/, jint fd, jint vid, jint pid, jstring deviceName, jstring productName)
 {
     bool ret = true;
     QString device_name;
@@ -82,13 +82,14 @@ void jniDeviceDetach(JNIEnv * /*env*/, jobject /*thiz*/)
     QMetaObject::invokeMethod(USBManager::getInstance(), "onDeviceDetach", Qt::QueuedConnection);
 }
 
+// RegisterNatives 动态注册 JNI 接口
 void initUsbManager()
 {
     JNINativeMethod methods[] =
         {{"jniDeviceAttach", "(IIILjava/lang/String;Ljava/lang/String;)Z", reinterpret_cast<void *>(jniDeviceAttach)},
          {"jniDeviceDetach", "()V", reinterpret_cast<void *>(jniDeviceDetach)}};
 
-    // 通过自定义的 Application 获取 context，也可以通过当前 activity 获取
+    // 通过自定义的 Application 获取 context，也可以通过当前 Activity 获取
     QAndroidJniObject context = QAndroidJniObject::callStaticObjectMethod(
         "com/gongjianbo/demo/MyApplication",
         "getContext",

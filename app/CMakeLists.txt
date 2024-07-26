@@ -13,6 +13,8 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets Quick Qml Con
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets Quick Qml Concurrent AndroidExtras)
 
 set(PROJECT_SOURCES
+    ActivityManager.h
+    ActivityManager.cpp
     FileTool.h
     FileTool.cpp
     USBManager.h

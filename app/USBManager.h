@@ -5,7 +5,7 @@
 #include "libuvc/libuvc.h"
 #include "libuvc/libuvc_internal.h"
 
-// USB操作
+// USB 操作
 class USBManager : public QObject
 {
     Q_OBJECT

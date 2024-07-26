@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include "ActivityManager.h"
 #include "USBManager.h"
 #include "FileTool.h"
 #include "VideoItem.h"
@@ -31,26 +32,45 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("gongjianbo");
     QCoreApplication::setOrganizationDomain("gongjianbo.com");
     QCoreApplication::setApplicationName("HelloQtAndroid");
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-#endif
     QGuiApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
 
     qRegisterMetaType<QImage>("QImage");
+
     qmlRegisterType<FileTool>("GongJianBo", 1, 0, "FileTool");
     qmlRegisterType<VideoItem>("GongJianBo", 1, 0, "VideoItem");
-    qmlRegisterUncreatableType<USBManager>("GongJianBo", 1, 0, "USBManager", "USBManager is uncreatable type");
-    engine.rootContext()->setContextProperty("usbManager", USBManager::getInstance());
+    // qmlRegisterUncreatableType<USBManager>("GongJianBo", 1, 0, "USBManager", "USBManager is uncreatable type");
+    // 可以用全局属性，也可以注册为单例
+    // engine.rootContext()->setContextProperty("usbManager", USBManager::getInstance());
+    qmlRegisterSingletonType<ActivityManager>(
+        "GongJianBo", 1, 0,
+        "ActivityManager", [](QQmlEngine *qmlEngine, QJSEngine *){
+            qmlEngine->setObjectOwnership(ActivityManager::getInstance(), QQmlEngine::CppOwnership);
+            return ActivityManager::getInstance();
+        });
+    qmlRegisterSingletonType<USBManager>(
+        "GongJianBo", 1, 0,
+        "USBManager", [](QQmlEngine *qmlEngine, QJSEngine *){
+            qmlEngine->setObjectOwnership(USBManager::getInstance(), QQmlEngine::CppOwnership);
+            return USBManager::getInstance();
+        });
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
-                     &app, [url](QObject *obj, const QUrl &objUrl) {
-        if (!obj && url == objUrl)
-            QCoreApplication::exit(-1);
-    }, Qt::QueuedConnection);
+        &app, [url](QObject *obj, const QUrl &objUrl) {
+            if (!obj && url == objUrl)
+                QCoreApplication::exit(-1);
+        }, Qt::QueuedConnection);
     engine.load(url);
+
+    QObject::connect(ActivityManager::getInstance(), &ActivityManager::touchEventCanceled,
+        &engine, [&engine]() {
+            if (engine.rootObjects().isEmpty())
+                return;
+            // qDebug() << engine.rootObjects() << engine.rootObjects().first()->children();
+            QGuiApplication::postEvent(engine.rootObjects().first(), new QTouchEvent( QEvent::TouchCancel, 0, 0, 0));
+        }, Qt::QueuedConnection);
 
     return app.exec();
 }

@@ -158,7 +158,8 @@ public class USBMonitor {
         }
     }
 
+    // [JNI]设备插入
     public native boolean jniDeviceAttach(int fd, int vid, int pid, String deviceName, String productName);
-
+    // [JNI]设备拔出
     public native void jniDeviceDetach();
 }

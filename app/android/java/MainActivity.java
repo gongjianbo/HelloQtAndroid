@@ -9,6 +9,7 @@ import androidx.core.app.ActivityCompat;
 import android.app.Activity;
 import android.Manifest;
 import android.view.WindowManager;
+import android.view.MotionEvent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -96,4 +97,26 @@ public class MainActivity extends QtActivity {
             }
         }
     }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event)
+    {
+        if (event.getAction() == MotionEvent.ACTION_CANCEL) {
+            jniTouchEventCanceled();
+        }
+        return super.onTouchEvent(event);
+    }
+
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev)
+    {
+        if (ev.getAction() == MotionEvent.ACTION_CANCEL) {
+            jniTouchEventCanceled();
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
+    // [JNI] 触摸释放
+    public static native void jniTouchEventCanceled();
 }

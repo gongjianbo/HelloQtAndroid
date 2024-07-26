@@ -12,11 +12,13 @@ TEMPLATE = app
 DESTDIR = $$PWD/../bin
 
 HEADERS += \
+    ActivityManager.h \
     FileTool.h \
     USBManager.h \
     VideoItem.h
 
 SOURCES += \
+    ActivityManager.cpp \
     FileTool.cpp \
     USBManager.cpp \
     VideoItem.cpp \
