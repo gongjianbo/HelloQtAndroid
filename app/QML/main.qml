@@ -1,12 +1,13 @@
 import QtQuick 2.15
 import QtQuick.Window 2.15
 import QtQuick.Controls 2.15
-import GongJianBo 1.0
+import GongJianBo.Declarative 1.0
+import GongJianBo.Tools 1.0
 
 Window {
     id: main_window
-    width: 640
-    height: 480
+    width: 720
+    height: 1280
     visible: true
     title: qsTr("Hello Qt Android")
 
@@ -26,10 +27,6 @@ Window {
         onClicked: {
             console.log("main_window onClicked")
         }
-    }
-
-    FileTool {
-        id: file_tool
     }
 
     Connections {
@@ -80,13 +77,13 @@ Window {
             Button {
                 text: "Read"
                 onClicked: {
-                    file_label.text = file_tool.readTest()
+                    file_label.text = FileTool.readTest()
                 }
             }
             Button {
                 text: "Write"
                 onClicked: {
-                    file_label.text = file_tool.writeTest()
+                    file_label.text = FileTool.writeTest()
                 }
             }
             Text {
@@ -130,7 +127,7 @@ Window {
         padding: 0
         // closePolicy 会影响 ESC 响应以及安卓返回处理
         // 默认 Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        closePolicy: Dialog.CloseOnEscape
+        closePolicy: Dialog.CloseOnEscape | Popup.CloseOnReleaseOutside
         Rectangle {
             anchors.fill: parent
             color: "red"

@@ -5,10 +5,13 @@
 class FileTool : public QObject
 {
     Q_OBJECT
+    Q_DISABLE_COPY_MOVE(FileTool)
+private:
+    FileTool();
 public:
-    explicit FileTool(QObject *parent = nullptr);
+    static FileTool *getInstance();
+    ~FileTool();
 
     Q_INVOKABLE int writeTest();
     Q_INVOKABLE int readTest();
-
 };

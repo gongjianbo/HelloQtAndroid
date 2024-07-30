@@ -12,34 +12,38 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets Quick Qml Concurrent AndroidExtras)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets Quick Qml Concurrent AndroidExtras)
 
+include_directories(Declarative)
+include_directories(Tools)
 set(PROJECT_SOURCES
-    AndroidTool.h
-    AndroidTool.cpp
-    ActivityManager.h
-    ActivityManager.cpp
-    FileTool.h
-    FileTool.cpp
-    USBManager.h
-    USBManager.cpp
-    VideoItem.h
-    VideoItem.cpp
+    Declarative/DeclarativeRegister.h
+    Declarative/VideoItem.h
+    Declarative/VideoItem.cpp
+    Tools/ActivityManager.h
+    Tools/ActivityManager.cpp
+    Tools/AndroidTool.h
+    Tools/AndroidTool.cpp
+    Tools/FileTool.h
+    Tools/FileTool.cpp
+    Tools/ToolsRegister.h
+    Tools/USBManager.h
+    Tools/USBManager.cpp
     main.cpp
-    qml.qrc
+    QML/qml.qrc
 )
 
 set(OTHER_FILES
-    android/AndroidManifest.xml
-    android/build.gradle
-    android/gradle.properties
-    android/gradle/wrapper/gradle-wrapper.jar
-    android/gradle/wrapper/gradle-wrapper.properties
-    android/gradlew
-    android/gradlew.bat
-    android/res/values/libs.xml
-    android/java/AndroidTool.java
-    android/java/MyApplication.java
-    android/java/MainActivity.java
-    android/java/USBMonitor.java
+    Platform/android/AndroidManifest.xml
+    Platform/android/build.gradle
+    Platform/android/gradle.properties
+    Platform/android/gradle/wrapper/gradle-wrapper.jar
+    Platform/android/gradle/wrapper/gradle-wrapper.properties
+    Platform/android/gradlew
+    Platform/android/gradlew.bat
+    Platform/android/res/values/libs.xml
+    Platform/android/java/AndroidTool.java
+    Platform/android/java/MyApplication.java
+    Platform/android/java/MainActivity.java
+    Platform/android/java/USBMonitor.java
 )
 
 add_custom_target(${PROJECT_NAME}_Other SOURCES ${OTHER_FILES})
@@ -50,11 +54,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
     )
     set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY
-        QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/android CACHE INTERNAL "")
+        QT_ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Platform/android CACHE INTERNAL "")
 else()
     if(ANDROID)
         add_library(${PROJECT_NAME} SHARED ${PROJECT_SOURCES})
-        set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android" CACHE INTERNAL "")
+        set(ANDROID_PACKAGE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Platform/android CACHE INTERNAL "")
     else()
         add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
     endif()

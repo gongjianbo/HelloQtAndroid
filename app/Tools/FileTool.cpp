@@ -1,18 +1,32 @@
 #include "FileTool.h"
+#include <QtAndroidExtras/QAndroidJniObject>
+#include <QtAndroidExtras/QAndroidJniEnvironment>
+#include <QtAndroidExtras/QtAndroid>
 #include <QStandardPaths>
 #include <QFile>
 #include <QDir>
+#include <QDebug>
 
-FileTool::FileTool(QObject *parent)
-    : QObject{parent}
+FileTool::FileTool()
 {
+    qDebug() << __FUNCTION__;
+}
 
+FileTool *FileTool::getInstance()
+{
+    static FileTool instance;
+    return &instance;
+}
+
+FileTool::~FileTool()
+{
+    qDebug() << __FUNCTION__;
 }
 
 int FileTool::writeTest()
 {
     QString dirpath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
-        + "/HelloQtAndroid";
+                      + "/HelloQtAndroid";
     QDir dir(dirpath);
     if (!dir.exists() && !dir.mkpath(dirpath))
         return -999;

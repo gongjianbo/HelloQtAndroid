@@ -11,22 +11,15 @@ CONFIG += c++17
 TEMPLATE = app
 DESTDIR = $$PWD/../bin
 
-HEADERS += \
-    ActivityManager.h \
-    AndroidTool.h \
-    FileTool.h \
-    USBManager.h \
-    VideoItem.h
+SOURCES += main.cpp
 
-SOURCES += \
-    ActivityManager.cpp \
-    AndroidTool.cpp \
-    FileTool.cpp \
-    USBManager.cpp \
-    VideoItem.cpp \
-    main.cpp
+RESOURCES += QML/qml.qrc
 
-RESOURCES += qml.qrc
+INCLUDEPATH += $$PWD/Tools
+include($$PWD/Tools/Tools.pri)
+
+INCLUDEPATH += $$PWD/Declarative
+include($$PWD/Declarative/Declarative.pri)
 
 # INCLUDEPATH += $$PWD/../lib
 # DEPENDPATH += $$PWD/../lib
@@ -35,23 +28,23 @@ RESOURCES += qml.qrc
 android{
     # Qt5 androidextras
     QT += androidextras
-    ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+    ANDROID_PACKAGE_SOURCE_DIR = $$PWD/Platform/android
 
     DISTFILES += \
-        android/AndroidManifest.xml \
-        android/build.gradle \
-        android/gradle.properties \
-        android/gradle/wrapper/gradle-wrapper.jar \
-        android/gradle/wrapper/gradle-wrapper.properties \
-        android/gradlew \
-        android/gradlew.bat \
-        android/res/values/libs.xml
+        Platform/android/AndroidManifest.xml \
+        Platform/android/build.gradle \
+        Platform/android/gradle.properties \
+        Platform/android/gradle/wrapper/gradle-wrapper.jar \
+        Platform/android/gradle/wrapper/gradle-wrapper.properties \
+        Platform/android/gradlew \
+        Platform/android/gradlew.bat \
+        Platform/android/res/values/libs.xml
 
     DISTFILES += \
-        android/java/AndroidTool.java \
-        android/java/MyApplication.java \
-        android/java/MainActivity.java \
-        android/java/USBMonitor.java
+        Platform/android/java/AndroidTool.java \
+        Platform/android/java/MyApplication.java \
+        Platform/android/java/MainActivity.java \
+        Platform/android/java/USBMonitor.java
 
     # ANDROID_ABIS = arm64-v8a armeabi-v7a x86 x86_64
     INCLUDEPATH += $$PWD/../3rd/libusb/include
