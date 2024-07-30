@@ -13,6 +13,8 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Gui Widgets Quick Qml Con
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Gui Widgets Quick Qml Concurrent AndroidExtras)
 
 set(PROJECT_SOURCES
+    AndroidTool.h
+    AndroidTool.cpp
     ActivityManager.h
     ActivityManager.cpp
     FileTool.h
@@ -34,6 +36,7 @@ set(OTHER_FILES
     android/gradlew
     android/gradlew.bat
     android/res/values/libs.xml
+    android/java/AndroidTool.java
     android/java/MyApplication.java
     android/java/MainActivity.java
     android/java/USBMonitor.java

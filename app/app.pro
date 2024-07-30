@@ -13,12 +13,14 @@ DESTDIR = $$PWD/../bin
 
 HEADERS += \
     ActivityManager.h \
+    AndroidTool.h \
     FileTool.h \
     USBManager.h \
     VideoItem.h
 
 SOURCES += \
     ActivityManager.cpp \
+    AndroidTool.cpp \
     FileTool.cpp \
     USBManager.cpp \
     VideoItem.cpp \
@@ -46,6 +48,7 @@ android{
         android/res/values/libs.xml
 
     DISTFILES += \
+        android/java/AndroidTool.java \
         android/java/MyApplication.java \
         android/java/MainActivity.java \
         android/java/USBMonitor.java

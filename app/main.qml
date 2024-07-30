@@ -97,6 +97,21 @@ Window {
         Row {
             spacing: 20
             Button {
+                text: "Restart"
+                onClicked: {
+                    AndroidTool.restartApp()
+                }
+            }
+            Button {
+                text: "Home"
+                onClicked: {
+                    AndroidTool.gotoHome()
+                }
+            }
+        }
+        Row {
+            spacing: 20
+            Button {
                 text: "Pop"
                 onClicked: {
                     my_pop.open()

@@ -3,6 +3,7 @@
 #include <QQmlContext>
 #include "ActivityManager.h"
 #include "USBManager.h"
+#include "AndroidTool.h"
 #include "FileTool.h"
 #include "VideoItem.h"
 
@@ -55,6 +56,12 @@ int main(int argc, char *argv[])
             qmlEngine->setObjectOwnership(USBManager::getInstance(), QQmlEngine::CppOwnership);
             return USBManager::getInstance();
         });
+    qmlRegisterSingletonType<AndroidTool>(
+        "GongJianBo", 1, 0,
+        "AndroidTool", [](QQmlEngine *qmlEngine, QJSEngine *){
+            qmlEngine->setObjectOwnership(AndroidTool::getInstance(), QQmlEngine::CppOwnership);
+            return AndroidTool::getInstance();
+        });
 
     const QUrl url(QStringLiteral("qrc:/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
@@ -69,7 +76,7 @@ int main(int argc, char *argv[])
             if (engine.rootObjects().isEmpty())
                 return;
             // qDebug() << engine.rootObjects() << engine.rootObjects().first()->children();
-            QGuiApplication::postEvent(engine.rootObjects().first(), new QTouchEvent( QEvent::TouchCancel, 0, 0, 0));
+            QGuiApplication::postEvent(engine.rootObjects().first(), new QTouchEvent(QEvent::TouchCancel, 0, 0, 0));
         }, Qt::QueuedConnection);
 
     return app.exec();

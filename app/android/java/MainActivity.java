@@ -1,6 +1,5 @@
 // 根据包名在AndroidManifest.xml中指定Activity的name路径（=包名.类名）
 package com.gongjianbo.demo;
-import com.gongjianbo.demo.*;
 import org.qtproject.qt5.android.bindings.QtActivity;
 
 import androidx.annotation.NonNull;
@@ -40,6 +39,7 @@ public class MainActivity extends QtActivity {
         // 文件读写权限
         verifyStoragePermissions(this);
 
+        MyApplication.setActivity(this);
         Log.e(LogTag, "onCreate MainActivity finish");
     }
 
