@@ -1,9 +1,6 @@
 <?xml version="1.0"?>
 <manifest package="com.gongjianbo.demo"
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:versionName="-- %%INSERT_VERSION_NAME%% --"
-    android:versionCode="-- %%INSERT_VERSION_CODE%% --"
-    android:installLocation="auto">
+    xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="1.0.0" android:versionCode="1" android:installLocation="auto">
     <!-- The following comment will be replaced upon deployment with default permissions based on the dependencies of the application.
          Remove the comment if you do not require these default permissions. -->
     <!-- %%INSERT_PERMISSIONS -->
@@ -25,21 +22,10 @@
          Remove the comment if you do not require these default features. -->
     <!-- %%INSERT_FEATURES -->
 
-    <supports-screens android:largeScreens="true"
-        android:normalScreens="true"
-        android:anyDensity="true"
-        android:smallScreens="true"/>
+    <supports-screens android:largeScreens="true" android:normalScreens="true" android:anyDensity="true" android:smallScreens="true"/>
     <!-- Equal Android 10 API 29 storage need requestLegacyExternalStorage -->
-    <application android:hardwareAccelerated="true"
-        android:name="com.gongjianbo.demo.MyApplication"
-        android:label="HelloQtAndroid"
-        android:extractNativeLibs="true"
-        android:requestLegacyExternalStorage="true">
-        <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density"
-            android:name="com.gongjianbo.demo.MainActivity"
-            android:label="HelloQtAndroid"
-            android:screenOrientation="unspecified"
-            android:launchMode="singleTop">
+    <application android:hardwareAccelerated="true" android:name="com.gongjianbo.demo.MyApplication" android:label="HelloQtAndroid" android:extractNativeLibs="true" android:requestLegacyExternalStorage="true" android:icon="@drawable/icon">
+        <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density" android:name="com.gongjianbo.demo.MainActivity" android:label="HelloQtAndroid" android:screenOrientation="unspecified" android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
