@@ -1,5 +1,9 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
+        <file>Page/PopupPage.qml</file>
+        <file>Page/JNIPage.qml</file>
+        <file>Page/FilePage.qml</file>
+        <file>Page/USBPage.qml</file>
     </qresource>
 </RCC>

@@ -1,10 +1,13 @@
 import QtQuick 2.15
 import QtQuick.Window 2.15
 import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
 import GongJianBo.Declarative 1.0
 import GongJianBo.Tools 1.0
 
-Window {
+import "./Page"
+
+ApplicationWindow {
     id: main_window
     width: 720
     height: 1280
@@ -13,8 +16,8 @@ Window {
 
     // 屏蔽 close 关闭，accepted = false 则不处理该操作
     onClosing: function(event) {
-        event.accepted = false
         console.log("main_window close")
+        event.accepted = false
     }
     MouseArea {
         anchors.fill: parent
@@ -29,114 +32,39 @@ Window {
         }
     }
 
-    Connections {
-        target: USBManager
-        function onNewFrame(frame) {
-            video_item.updateFrame(frame)
-        }
-    }
-
-    Column {
-        anchors.centerIn: parent
-        spacing: 12
-        Text {
-            text: "Hello Qt Android"
-        }
-        Text {
-            text: String("USB %1").arg(USBManager.deviceInfo)
-        }
+    header: Rectangle {
+        color: "gray"
+        width: main_window.width
+        height: 40
         Row {
-            spacing: 20
-            Button {
-                id: btn_usb
-                text: String("USB %1").arg((USBManager.deviceMode === USBManager.TestUsb && USBManager.isOpen) ? "[ON]" : "[OFF]")
-                onClicked: {
-                    USBManager.testOpen(USBManager.TestUsb)
-                }
-            }
-            Button {
-                id: btn_uvc
-                text: String("UVC %1").arg((USBManager.deviceMode === USBManager.TestUvc && USBManager.isOpen) ? "[ON]" : "[OFF]")
-                onClicked: {
-                    USBManager.testOpen(USBManager.TestUvc)
-                }
-            }
-        }
-        Rectangle {
-            width: 300
-            height: 200
-            border.color: "black"
-            VideoItem {
-                id: video_item
-                anchors.fill: parent
-                anchors.margins: 1
-            }
-        }
-        Row {
-            spacing: 20
-            Button {
-                text: "Read"
-                onClicked: {
-                    file_label.text = FileTool.readTest()
-                }
-            }
-            Button {
-                text: "Write"
-                onClicked: {
-                    file_label.text = FileTool.writeTest()
-                }
-            }
-            Text {
-                id: file_label
-                text: "-"
-            }
-        }
-        Row {
-            spacing: 20
-            Button {
-                text: "Restart"
-                onClicked: {
-                    AndroidTool.restartApp()
-                }
-            }
-            Button {
-                text: "Home"
-                onClicked: {
-                    AndroidTool.gotoHome()
-                }
-            }
-        }
-        Row {
-            spacing: 20
-            Button {
-                text: "Pop"
-                onClicked: {
-                    my_pop.open()
-                }
-            }
-        }
-    }
-
-    // 叠加 Dialog 时，内部 Dialog 需要 parent 可见才能显示
-    Dialog {
-        id: my_pop
-        anchors.centerIn: Overlay.overlay
-        width: 200
-        height: 200
-        modal: true
-        padding: 0
-        // closePolicy 会影响 ESC 响应以及安卓返回处理
-        // 默认 Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        closePolicy: Dialog.CloseOnEscape | Popup.CloseOnReleaseOutside
-        Rectangle {
             anchors.fill: parent
-            color: "red"
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    my_pop.close()
-                }
+            leftPadding: 20
+            spacing: 20
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Hello Qt Android"
+            }
+            ComboBox {
+                id: page_box
+                width: 200
+                height: 40
+                model: [
+                    "Popup"
+                    ,"JNI"
+                    ,"File"
+                    ,"USB"
+                ]
             }
         }
+    }
+
+    StackLayout {
+        id: page_stack
+        anchors.fill: parent
+        currentIndex: page_box.currentIndex
+        PopupPage {}
+        JNIPage {}
+        FilePage {}
+        USBPage {}
     }
 }

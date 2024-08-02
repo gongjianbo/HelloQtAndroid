@@ -67,7 +67,7 @@ inline void registerType(QQmlApplicationEngine *engine)
             auto &&root_objects = engine->rootObjects();
             if (root_objects.isEmpty())
                 return;
-            // 但窗口，其他都用 Dialog/Popup
+            // 单窗口，其他都用 Dialog/Popup
             QGuiApplication::postEvent(root_objects.first(), new QTouchEvent(QEvent::TouchCancel, 0, 0, 0));
         }, Qt::QueuedConnection);
 }

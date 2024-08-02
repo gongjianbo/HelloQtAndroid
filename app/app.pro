@@ -3,7 +3,9 @@ QT += gui
 QT += widgets
 QT += quick
 QT += qml
+QT += quickcontrols2
 QT += concurrent
+QT += svg
 
 CONFIG += utf8_source
 CONFIG += c++17

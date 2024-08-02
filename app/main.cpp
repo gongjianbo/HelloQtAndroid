@@ -1,6 +1,7 @@
 #include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQuickStyle>
 #include "DeclarativeRegister.h"
 #include "ToolsRegister.h"
 
@@ -12,6 +13,8 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("gongjianbo");
     QCoreApplication::setOrganizationDomain("gongjianbo.com");
     QCoreApplication::setApplicationName("HelloQtAndroid");
+    QQuickStyle::setStyle("Material");
+
     QGuiApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
