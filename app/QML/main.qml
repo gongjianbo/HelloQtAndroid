@@ -35,7 +35,7 @@ ApplicationWindow {
     header: Rectangle {
         color: "gray"
         width: main_window.width
-        height: 40
+        height: 50
         Row {
             anchors.fill: parent
             leftPadding: 20
@@ -43,16 +43,17 @@ ApplicationWindow {
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Hello Qt Android"
+                font.pixelSize: 16
             }
             ComboBox {
                 id: page_box
                 width: 200
-                height: 40
                 model: [
                     "Popup"
                     ,"JNI"
                     ,"File"
                     ,"USB"
+                    ,"Camera"
                 ]
             }
         }
@@ -66,5 +67,6 @@ ApplicationWindow {
         JNIPage {}
         FilePage {}
         USBPage {}
+        CameraPage {}
     }
 }
