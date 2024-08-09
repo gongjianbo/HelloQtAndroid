@@ -73,10 +73,13 @@ Rectangle {
                 Button {
                     text: "Cpture"
                     onClicked: {
-                        video_putput.grabToImage(function(result) {
-                            console.log("cpature", result.url)
-                            camera_frame.source = result.url
-                        });
+                        // video_putput.grabToImage(function(result) {
+                        //     console.log("cpature", result.url)
+                        //     camera_frame.source = result.url
+                        // });
+                        if (camera) {
+                            camera.imageCapture.capture()
+                        }
                     }
                 }
                 Image {
@@ -100,6 +103,15 @@ Rectangle {
         id: camera_comp
         Camera {
             // 安卓上无法通过camera.supportedViewfinderResolutions()获取分辨率
+            imageCapture {
+                onImageCaptured: function(requestId, preview) {
+                    console.log("capture", preview)
+                    camera_frame.source = preview
+                }
+                onImageSaved: function(requestId, path) {
+                    console.log("capture", path)
+                }
+            }
         }
     }
     property Camera camera: null
