@@ -7,8 +7,12 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import android.app.Activity;
 import android.Manifest;
+import android.view.View;
+import android.view.Surface;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.MotionEvent;
+import android.view.OrientationEventListener;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -22,6 +26,8 @@ import android.widget.Toast;
  
 public class MainActivity extends QtActivity {
     private String LogTag = "[MainActivity]";
+    private OrientationEventListener orientationListener = null;
+    private int activityRotation = -1;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -31,16 +37,68 @@ public class MainActivity extends QtActivity {
             getApplicationContext().equals(MyApplication.getContext())));
         Log.e(LogTag, String.format("getApplicationContext() equals Activity ? %b",
             getApplicationContext().equals(this)));
+        MyApplication.setActivity(this);
         // 设置屏幕常亮
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        // 相机权限
-        verifyCameraPermissions(this);
         // 文件读写权限
         verifyStoragePermissions(this);
-
-        MyApplication.setActivity(this);
+        // 相机权限
+        verifyCameraPermissions(this);
         Log.e(LogTag, "onCreate MainActivity finish");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        disableRotationListen();
+    }
+
+    // 获取旋转角度
+    public int getRotation() {
+        int angle = getWindowManager().getDefaultDisplay().getRotation();
+        switch (angle) {
+            case Surface.ROTATION_0: return 0;
+            case Surface.ROTATION_90: return 90;
+            case Surface.ROTATION_180: return 180;
+            case Surface.ROTATION_270: return 270;
+        }
+        return -1;
+    }
+
+    // 初始化角度设置，需要初始化JNI后调用
+    public void initRotation() {
+        // 监听方向变化
+        orientationListener = new OrientationEventListener(this) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+                if (orientation == OrientationEventListener.ORIENTATION_UNKNOWN)
+                    return;
+                int rotation = getRotation();
+                if (rotation != activityRotation) {
+                    activityRotation = rotation;
+                    jniActivityRotationChanged(activityRotation);
+                }
+            }
+        };
+    }
+
+    // 开启监听方向变化
+    public void enableRotationListen() {
+        if (orientationListener == null)
+            return;
+        if (orientationListener.canDetectOrientation()) {
+            orientationListener.enable();
+        }
+        activityRotation = getRotation();
+        jniActivityRotationChanged(activityRotation);
+    }
+
+    // 结束监听方向变化
+    public void disableRotationListen() {
+        if (orientationListener == null)
+            return;
+        orientationListener.disable();
     }
 
     // 相机权限
@@ -119,4 +177,6 @@ public class MainActivity extends QtActivity {
 
     // [JNI] 触摸释放
     public static native void jniTouchEventCanceled();
+    // [JNI] 方向变化
+    public static native void jniActivityRotationChanged(int rotation);
 }

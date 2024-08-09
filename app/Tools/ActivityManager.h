@@ -18,6 +18,7 @@ class ActivityManager : public QObject
 {
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(ActivityManager)
+    Q_PROPERTY(int rotation READ getRotation WRITE setRotation NOTIFY rotationChanged)
 private:
     ActivityManager();
 public:
@@ -26,7 +27,20 @@ public:
     // 动态注册 JNI 接口
     void initJNI();
 
+    // Activity 的显示方向
+    int getRotation() const;
+    void setRotation(int rotation);
+
+    // 开启监听方向变化
+    Q_INVOKABLE void enableRotationListen();
+    // 结束监听方向变化
+    Q_INVOKABLE void disableRotationListen();
+
 signals:
+    void rotationChanged();
     void touchEventCanceled();
 
+private:
+    // Activity 的显示方向
+    int mRotation{0};
 };

@@ -23,6 +23,18 @@ Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1
                 source: camera
+                autoOrientation: false
+                // 横屏旋转
+                // orientation: ActivityManager.rotation === 270 ? 180 : 0
+                // 四个方向旋转
+                orientation: {
+                    switch(ActivityManager.rotation) {
+                    case 0: return -90
+                    case 180: return 90
+                    case 270: return 180
+                    default: return 0
+                    }
+                }
             }
         }
         Rectangle {
@@ -73,6 +85,14 @@ Rectangle {
                     height: 120
                 }
             }
+        }
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            ActivityManager.enableRotationListen()
+        } else {
+            ActivityManager.disableRotationListen()
         }
     }
 

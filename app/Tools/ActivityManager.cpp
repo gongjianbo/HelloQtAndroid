@@ -2,12 +2,21 @@
 #include <QtAndroidExtras/QAndroidJniObject>
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <QtAndroidExtras/QtAndroid>
+#include <QMetaObject>
 #include <QDebug>
 
 void jniTouchEventCanceled(JNIEnv * /*env*/, jobject /*thiz*/)
 {
     qDebug() << __FUNCTION__;
     emit ActivityManager::getInstance()->touchEventCanceled();
+}
+
+void jniActivityRotationChanged(JNIEnv * /*env*/, jobject /*thiz*/, jint rotation)
+{
+    qDebug() << __FUNCTION__ << rotation;
+    QMetaObject::invokeMethod(ActivityManager::getInstance(), [rotation](){
+        ActivityManager::getInstance()->setRotation(rotation);
+    }, Qt::QueuedConnection);
 }
 
 ActivityManager::ActivityManager()
@@ -29,7 +38,8 @@ ActivityManager::~ActivityManager()
 void ActivityManager::initJNI()
 {
     JNINativeMethod methods[] =
-        {{"jniTouchEventCanceled", "()V", reinterpret_cast<void *>(jniTouchEventCanceled)}};
+        {{"jniTouchEventCanceled", "()V", reinterpret_cast<void *>(jniTouchEventCanceled)},
+         {"jniActivityRotationChanged", "(I)V", reinterpret_cast<void *>(jniActivityRotationChanged)}};
 
     QAndroidJniObject activity = QtAndroid::androidActivity();
     if (!activity.isValid()) return;
@@ -42,4 +52,35 @@ void ActivityManager::initJNI()
                          methods,
                          sizeof(methods) / sizeof(methods[0]));
     env->DeleteLocalRef(obj_class);
+    // 初始化角度
+    activity.callMethod<void>("initRotation", "()V");
+}
+
+int ActivityManager::getRotation() const
+{
+    return mRotation;
+}
+
+void ActivityManager::setRotation(int rotation)
+{
+    if (mRotation == rotation)
+        return;
+    mRotation = rotation;
+    emit rotationChanged();
+}
+
+void ActivityManager::enableRotationListen()
+{
+    QAndroidJniObject activity = QtAndroid::androidActivity();
+    if (!activity.isValid())
+        return;
+    activity.callMethod<void>("enableRotationListen", "()V");
+}
+
+void ActivityManager::disableRotationListen()
+{
+    QAndroidJniObject activity = QtAndroid::androidActivity();
+    if (!activity.isValid())
+        return;
+    activity.callMethod<void>("disableRotationListen", "()V");
 }
