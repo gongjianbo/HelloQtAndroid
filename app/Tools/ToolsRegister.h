@@ -33,6 +33,9 @@ inline void checkPermission()
 
 inline void registerType(QQmlApplicationEngine *engine)
 {
+    ActivityManager::getInstance()->initJNI();
+    USBManager::getInstance()->initJNI();
+
     // QQmlContext *context = engine->rootContext();
     // 可以用全局属性，也可以注册为单例
     // qmlRegisterUncreatableType<USBManager>("Cute.Tools", 1, 0, "USBManager", "USBManager is uncreatable type");
@@ -63,13 +66,13 @@ inline void registerType(QQmlApplicationEngine *engine)
         });
 
     QObject::connect(ActivityManager::getInstance(), &ActivityManager::touchEventCanceled,
-        engine, [engine]() {
-            auto &&root_objects = engine->rootObjects();
-            if (root_objects.isEmpty())
-                return;
-            // 单窗口，其他都用 Dialog/Popup
-            QGuiApplication::postEvent(root_objects.first(), new QTouchEvent(QEvent::TouchCancel));
-        }, Qt::QueuedConnection);
+                     engine, [engine]() {
+                         auto &&root_objects = engine->rootObjects();
+                         if (root_objects.isEmpty())
+                             return;
+                         // 单窗口，其他都用 Dialog/Popup
+                         QGuiApplication::postEvent(root_objects.first(), new QTouchEvent(QEvent::TouchCancel));
+                     }, Qt::QueuedConnection);
 }
 
 }

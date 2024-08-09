@@ -82,8 +82,27 @@ void jniDeviceDetach(JNIEnv * /*env*/, jobject /*thiz*/)
     QMetaObject::invokeMethod(USBManager::getInstance(), "onDeviceDetach", Qt::QueuedConnection);
 }
 
-// RegisterNatives 动态注册 JNI 接口
-void initUsbManager()
+USBManager::USBManager()
+{
+    qDebug() << __FUNCTION__;
+    // 用全局对象管理在 libusb_exit 释放时可能卡死，改为构造和析构中调用
+    // libusb_init(nullptr);
+}
+
+USBManager *USBManager::getInstance()
+{
+    static USBManager instance;
+    return &instance;
+}
+
+USBManager::~USBManager()
+{
+    qDebug() << __FUNCTION__;
+    testClose();
+    // libusb_exit(nullptr);
+}
+
+void USBManager::initJNI()
 {
     JNINativeMethod methods[] =
         {{"jniDeviceAttach", "(IIILjava/lang/String;Ljava/lang/String;)Z", reinterpret_cast<void *>(jniDeviceAttach)},
@@ -108,32 +127,11 @@ void initUsbManager()
     QAndroidJniEnvironment env;
     jclass obj_class = env->GetObjectClass(monitor.object<jobject>());
     if (!obj_class) return;
-
+    // RegisterNatives 动态注册 JNI 接口
     env->RegisterNatives(obj_class,
                          methods,
                          sizeof(methods) / sizeof(methods[0]));
     env->DeleteLocalRef(obj_class);
-}
-
-USBManager::USBManager()
-{
-    qDebug() << __FUNCTION__;
-    // 用全局对象管理在 libusb_exit 释放时可能卡死，改为构造和析构中调用
-    // libusb_init(nullptr);
-    initUsbManager();
-}
-
-USBManager *USBManager::getInstance()
-{
-    static USBManager instance;
-    return &instance;
-}
-
-USBManager::~USBManager()
-{
-    qDebug() << __FUNCTION__;
-    testClose();
-    // libusb_exit(nullptr);
 }
 
 QString USBManager::getDeviceInfo() const
@@ -327,50 +325,50 @@ bool USBManager::doOpenUvc(int fd)
     }
     // 按键回调，启动视频流后才会触发
     uvc_set_button_callback(uvcHandle, [](int button, int state, void *){
-            // 1-1 按下, 1-0 弹起
-            qDebug() << "uvc button callback" << button << state;
-        }, nullptr);
+        // 1-1 按下, 1-0 弹起
+        qDebug() << "uvc button callback" << button << state;
+    }, nullptr);
     uvc_ret = uvc_get_stream_ctrl_format_size(uvcHandle, &uvcCtrl, cur_format, cur_width, cur_height, 30);
     if (uvc_ret < 0) {
         qDebug() << "uvc_get_stream_ctrl_format_size failed:" << uvc_ret << uvc_strerror(uvc_ret);
     }
     uvc_ret = uvc_start_streaming(uvcHandle, &uvcCtrl, [](struct uvc_frame *frame, void *userData){
-            if (!frame) return;
-            static int i = 0;
-            qDebug() << "uvc stream callback" << frame->width << frame->height << frame->frame_format << QTime::currentTime() << i++;
-            // return;
-            USBManager *manager = static_cast<USBManager *>(userData);
-            if (manager) {
-                // TODO 数据拷贝出来放到解析的线程种处理
-                uvc_frame_t *copy = uvc_allocate_frame(frame->data_bytes);
-                if (!copy) return;
-                uvc_error_t err = uvc_duplicate_frame(frame, copy);
-                if (err) {
-                    uvc_free_frame(copy);
-                } else {
-                    uvc_frame_t *rgb = uvc_allocate_frame(frame->data_bytes);
-                    QImage image;
-                    // TODO 暂时用rgb，后面把yuv处理加上
-                    if (!rgb) {
-                    } if (frame->frame_format == UVC_FRAME_FORMAT_MJPEG) {
-                        uvc_error_t err = uvc_mjpeg2rgb(copy, rgb);
-                        if (!err) {
-                            image = QImage((const uchar *)rgb->data, rgb->width, rgb->height,
-                                           rgb->width * 3, QImage::Format_RGB888);
-                        }
-                    } else if (frame->frame_format == UVC_FRAME_FORMAT_YUYV) {
-                        uvc_error_t err = uvc_yuyv2rgb(copy, rgb);
-                        if (!err) {
-                            image = QImage((const uchar *)rgb->data, rgb->width, rgb->height,
-                                           rgb->width * 3, QImage::Format_RGB888);
-                        }
+        if (!frame) return;
+        static int i = 0;
+        qDebug() << "uvc stream callback" << frame->width << frame->height << frame->frame_format << QTime::currentTime() << i++;
+        // return;
+        USBManager *manager = static_cast<USBManager *>(userData);
+        if (manager) {
+            // TODO 数据拷贝出来放到解析的线程种处理
+            uvc_frame_t *copy = uvc_allocate_frame(frame->data_bytes);
+            if (!copy) return;
+            uvc_error_t err = uvc_duplicate_frame(frame, copy);
+            if (err) {
+                uvc_free_frame(copy);
+            } else {
+                uvc_frame_t *rgb = uvc_allocate_frame(frame->data_bytes);
+                QImage image;
+                // TODO 暂时用rgb，后面把yuv处理加上
+                if (!rgb) {
+                } if (frame->frame_format == UVC_FRAME_FORMAT_MJPEG) {
+                    uvc_error_t err = uvc_mjpeg2rgb(copy, rgb);
+                    if (!err) {
+                        image = QImage((const uchar *)rgb->data, rgb->width, rgb->height,
+                                       rgb->width * 3, QImage::Format_RGB888);
                     }
-                    manager->newFrame(image.copy());
-                    uvc_free_frame(copy);
-                    uvc_free_frame(rgb);
+                } else if (frame->frame_format == UVC_FRAME_FORMAT_YUYV) {
+                    uvc_error_t err = uvc_yuyv2rgb(copy, rgb);
+                    if (!err) {
+                        image = QImage((const uchar *)rgb->data, rgb->width, rgb->height,
+                                       rgb->width * 3, QImage::Format_RGB888);
+                    }
                 }
+                manager->newFrame(image.copy());
+                uvc_free_frame(copy);
+                uvc_free_frame(rgb);
             }
-        }, this, 0);
+        }
+    }, this, 0);
     if (uvc_ret < 0) {
         qDebug() << "uvc_start_streaming failed:" << uvc_ret << uvc_strerror(uvc_ret);
     }

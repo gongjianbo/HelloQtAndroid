@@ -25,6 +25,8 @@ private:
 public:
     static USBManager *getInstance();
     ~USBManager();
+    // 动态注册 JNI 接口
+    void initJNI();
 
     // 设备标识
     QString getDeviceInfo() const;
