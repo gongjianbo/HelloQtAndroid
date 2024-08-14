@@ -46,9 +46,12 @@ void deviceDescriptor(libusb_device *device)
     }
 }
 
-jboolean jniDeviceAttach(JNIEnv *env, jobject /*thiz*/, jint fd, jint vid, jint pid, jstring deviceName, jstring productName)
+jboolean jniDeviceAttach(JNIEnv *env, jobject /*thiz*/, jint fd, jint vid, jint pid,
+                         jstring deviceName, jstring productName, jboolean isSerialPort)
 {
-    bool ret = true;
+    if (fd == 0) {
+        return false;
+    }
     QString device_name;
     if (deviceName) {
         const char *str = env->GetStringUTFChars(deviceName, 0);
@@ -61,25 +64,29 @@ jboolean jniDeviceAttach(JNIEnv *env, jobject /*thiz*/, jint fd, jint vid, jint 
         product_name = str;
         env->ReleaseStringUTFChars(productName, str);
     }
-    QString info = QString("fd: 0x%1, vid: 0x%2, pid: 0x%3, device: %4, product: %5")
+    QString info = QString("fd: 0x%1, vid: 0x%2, pid: 0x%3, device: %4, product: %5, %6")
                        .arg(QString::number(fd, 16))
                        .arg(QString::number(vid, 16))
                        .arg(QString::number(pid, 16))
                        .arg(device_name)
-                       .arg(product_name);
+                       .arg(product_name)
+                       .arg(isSerialPort ? "serial port" : "usb device");
     qDebug() << __FUNCTION__ << info;
-    if (ret) {
+    if (isSerialPort) {
+        // 串口暂不处理
+    } else {
         QMetaObject::invokeMethod(USBManager::getInstance(), "onDeviceAttach", Qt::QueuedConnection,
                                   Q_ARG(int, fd), Q_ARG(int, vid), Q_ARG(int, pid),
                                   Q_ARG(QString, device_name), Q_ARG(QString, product_name));
     }
-    return ret;
+    return true;
 }
 
-void jniDeviceDetach(JNIEnv * /*env*/, jobject /*thiz*/)
+void jniDeviceDetach(JNIEnv * /*env*/, jobject /*thiz*/, jint fd)
 {
     qDebug() << __FUNCTION__;
-    QMetaObject::invokeMethod(USBManager::getInstance(), "onDeviceDetach", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(USBManager::getInstance(), "onDeviceDetach", Qt::QueuedConnection,
+                              Q_ARG(int, fd));
 }
 
 USBManager::USBManager()
@@ -105,8 +112,8 @@ USBManager::~USBManager()
 void USBManager::initJNI()
 {
     JNINativeMethod methods[] =
-        {{"jniDeviceAttach", "(IIILjava/lang/String;Ljava/lang/String;)Z", reinterpret_cast<void *>(jniDeviceAttach)},
-         {"jniDeviceDetach", "()V", reinterpret_cast<void *>(jniDeviceDetach)}};
+        {{"jniDeviceAttach", "(IIILjava/lang/String;Ljava/lang/String;Z)Z", reinterpret_cast<void *>(jniDeviceAttach)},
+         {"jniDeviceDetach", "(I)V", reinterpret_cast<void *>(jniDeviceDetach)}};
 
     // 通过自定义的 Application 获取 context，也可以通过当前 Activity 获取
     QAndroidJniObject context = QAndroidJniObject::callStaticObjectMethod(
@@ -151,7 +158,11 @@ bool USBManager::getIsOpen() const
 
 void USBManager::onDeviceAttach(int fd, int vid, int pid, const QString &deviceName, const QString &productName)
 {
-    mFd = dup(fd);
+    // 避免枚举到多个设备重复打开
+    if (mIsOpen)
+        return;
+    mFd = fd;
+    mDupFd = dup(fd);
     mVid = vid;
     mPid = pid;
     mBusNum = 0;
@@ -177,11 +188,16 @@ void USBManager::onDeviceAttach(int fd, int vid, int pid, const QString &deviceN
     testOpen();
 }
 
-void USBManager::onDeviceDetach()
+void USBManager::onDeviceDetach(int fd)
 {
+    if (mFd != fd)
+        return;
     testClose();
-    close(mFd);
+    close(mDupFd);
+    mDupFd = 0;
+    mFd = 0;
     mDeviceInfo = QString();
+    qDebug() << __FUNCTION__ << fd;
     emit deviceInfoChanged();
 }
 
@@ -192,14 +208,17 @@ void USBManager::testOpen(int mode)
         mDeviceMode = mode;
         emit deviceModeChanged();
     }
-    qDebug() << __FUNCTION__ << mDeviceMode;
+    qDebug() << __FUNCTION__ << mDeviceMode << mDupFd;
+    if (!mDupFd) {
+        return;
+    }
     bool open_ret = false;
     switch (mDeviceMode) {
     case TestUsb:
-        open_ret = doOpenUsb(mFd);
+        open_ret = doOpenUsb(mDupFd);
         break;
     case TestUvc:
-        open_ret = doOpenUvc(mFd);
+        open_ret = doOpenUvc(mDupFd);
         break;
     }
     if (open_ret) {

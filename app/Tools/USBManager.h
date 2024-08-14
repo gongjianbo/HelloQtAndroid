@@ -39,7 +39,7 @@ public slots:
     // 设备连接
     void onDeviceAttach(int fd, int vid, int pid, const QString &deviceName, const QString &productName);
     // 设备断开
-    void onDeviceDetach();
+    void onDeviceDetach(int fd);
     // 打开
     void testOpen(int mode = TestNone);
     // 关闭
@@ -66,6 +66,7 @@ private:
     bool mIsOpen{false};
     // 设备信息
     int mFd{0};
+    int mDupFd{0};
     int mVid{0};
     int mPid{0};
     int mBusNum{0};

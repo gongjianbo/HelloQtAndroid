@@ -5,8 +5,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
+import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,6 +19,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import java.util.HashMap;
+import java.util.Map;
 
 // USB 插拔检测
 // TargetSdkVersion > 27 需要先获取 CAMERA 权限，不然 USB Camera 不能弹出授权弹框
@@ -26,8 +29,8 @@ public class USBMonitor {
     private UsbManager manager;
     private PendingIntent permissionIntent;
     private Context context;
-    private UsbDeviceConnection connection = null;
-    private UsbDevice connectDevice;
+    // 保存连接，用于下次插拔信号时判断
+    private Map<UsbDevice, UsbDeviceConnection> deviceMap = new HashMap<>();
 
     public USBMonitor(Context ctx) {
         Log.e(LogTag, String.format("init USBMonitor. 0x%x", Thread.currentThread().getId()));
@@ -41,11 +44,13 @@ public class USBMonitor {
 
     protected void finalize() {
         Log.e(LogTag, "free USBMonitor");
-        if (connection != null) {
-            jniDeviceDetach();
+        for (Map.Entry<UsbDevice, UsbDeviceConnection> entry : deviceMap.entrySet()) {
+            UsbDeviceConnection connection = entry.getValue();
+            final int fd = connection.getFileDescriptor();
+            jniDeviceDetach(fd);
             connection.close();
-            connection = null;
         }
+        deviceMap.clear();
     }
 
     // 初始化放到 UI 线程执行
@@ -79,8 +84,7 @@ public class USBMonitor {
                     manager.requestPermission(usb_device, permissionIntent);
                     continue;
                 }
-                if (onAttach(usb_device))
-                    break;
+                onAttach(usb_device);
             }
         }
     };
@@ -120,11 +124,20 @@ public class USBMonitor {
         }
     };
 
+    public boolean isSerialPort(UsbDevice device) {
+        for (int i = 0; i < device.getInterfaceCount(); i++)
+        {
+            UsbInterface inter = device.getInterface(i);
+            if (inter.getInterfaceClass() == UsbConstants.USB_CLASS_CDC_DATA) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean onAttach(final UsbDevice device) {
-        Log.e(LogTag, String.format("onAttach"));
-        if (connection != null)
-            return false;
-        connection = manager.openDevice(device);
+        Log.e(LogTag, String.format("onAttach vid: 0x%x  pid: 0x%x", device.getVendorId(), device.getProductId()));
+        UsbDeviceConnection connection = manager.openDevice(device);
         if (connection == null) {
             Log.e(LogTag, String.format("UsbManager openDeivce failed."));
             return false;
@@ -135,31 +148,30 @@ public class USBMonitor {
         final int pid = device.getProductId();
         final String device_name = device.getDeviceName();
         final String product_name = device.getProductName();
-        if (jniDeviceAttach(fd, vid, pid, device_name, product_name)) {
-            connectDevice = device;
+        final boolean is_serial_port = isSerialPort(device);
+        if (jniDeviceAttach(fd, vid, pid, device_name, product_name, is_serial_port)) {
+            deviceMap.put(device, connection);
             return true;
         } else {
             Log.e(LogTag, String.format("open device failed."));
             connection.close();
-            connection = null;
         }
         return false;
     }
 
     private void onDetach(final UsbDevice device) {
-        Log.e(LogTag, String.format("onDetach"));
-        // 这里只判断了 vid pid，但不一定就是实际打开的设备
-        if (connection != null &&
-            connectDevice.getVendorId() == device.getVendorId() &&
-            connectDevice.getProductId() == device.getProductId()) {
-            jniDeviceDetach();
+        Log.e(LogTag, String.format("onDetach vid: 0x%x  pid: 0x%x", device.getVendorId(), device.getProductId()));
+        UsbDeviceConnection connection = deviceMap.get(device);
+        if (connection != null) {
+            final int fd = connection.getFileDescriptor();
+            jniDeviceDetach(fd);
             connection.close();
-            connection = null;
+            deviceMap.remove(device);
         }
     }
 
     // [JNI]设备插入
-    public native boolean jniDeviceAttach(int fd, int vid, int pid, String deviceName, String productName);
+    public native boolean jniDeviceAttach(int fd, int vid, int pid, String deviceName, String productName, boolean isSerialPort);
     // [JNI]设备拔出
-    public native void jniDeviceDetach();
+    public native void jniDeviceDetach(int fd);
 }
