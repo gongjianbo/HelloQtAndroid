@@ -21,6 +21,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
  
@@ -117,8 +118,15 @@ public class MainActivity extends QtActivity {
         // >=11 外部文件需要特殊的权限
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
-                Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                activity.startActivityForResult(intent, 1024);
+                // APP当前程序，ALL所有程序
+                try {
+                    Uri uri = Uri.parse("package:" + BuildConfig.APPLICATION_ID);
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, uri);
+                    activity.startActivityForResult(intent, 1024);
+                } catch (Exception ex){
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                    activity.startActivityForResult(intent, 1024);
+                }
             }
         } else {
             // >=6 检查读取和写入动态权限
