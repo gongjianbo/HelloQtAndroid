@@ -16,4 +16,12 @@ public:
     Q_INVOKABLE void restartApp();
     // 返回 Home 界面
     Q_INVOKABLE void gotoHome();
+    // 分享单个文件
+    Q_INVOKABLE void shareFile(const QString &path,
+                               const QString &mimeType = "*/*",
+                               const QString &title = "Share");
+    // 分享多个文件
+    Q_INVOKABLE void shareFiles(const QStringList &paths,
+                                const QString &mimeType = "*/*",
+                                const QString &title = "Share");
 };

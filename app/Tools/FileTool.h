@@ -12,6 +12,10 @@ public:
     static FileTool *getInstance();
     ~FileTool();
 
+    // 文件读写测试
     Q_INVOKABLE int writeTest();
     Q_INVOKABLE int readTest();
+    // 文件分享测试
+    Q_INVOKABLE void shareFileTest();
+    Q_INVOKABLE void shareFilesTest();
 };

@@ -40,7 +40,8 @@ android{
         Platform/android/gradle/wrapper/gradle-wrapper.properties \
         Platform/android/gradlew \
         Platform/android/gradlew.bat \
-        Platform/android/res/values/libs.xml
+        Platform/android/res/values/libs.xml \
+        Platform/android/res/xml/file_paths.xml
 
     DISTFILES += \
         Platform/android/java/AndroidTool.java \

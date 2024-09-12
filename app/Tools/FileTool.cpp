@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QDir>
 #include <QDebug>
+#include "AndroidTool.h"
 
 FileTool::FileTool()
 {
@@ -25,8 +26,8 @@ FileTool::~FileTool()
 
 int FileTool::writeTest()
 {
-    QString dirpath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
-                      + "/HelloQtAndroid";
+    QString dirpath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) +
+                      "/HelloQtAndroid";
     QDir dir(dirpath);
     if (!dir.exists() && !dir.mkpath(dirpath))
         return -999;
@@ -42,8 +43,8 @@ int FileTool::writeTest()
 
 int FileTool::readTest()
 {
-    QString dirpath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
-                      + "/HelloQtAndroid";
+    QString dirpath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) +
+                      "/HelloQtAndroid";
     QDir dir(dirpath);
     if (!dir.exists())
         return -999;
@@ -55,4 +56,22 @@ int FileTool::readTest()
         file.close();
     }
     return ret;
+}
+
+void FileTool::shareFileTest()
+{
+    QString path = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) +
+                   "/HelloQtAndroid/test.txt";
+    if (!QFile::exists(path))
+        return;
+    AndroidTool::getInstance()->shareFile(path, "text/*");
+}
+
+void FileTool::shareFilesTest()
+{
+    QString path = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) +
+                   "/HelloQtAndroid/test.txt";
+    if (!QFile::exists(path))
+        return;
+    AndroidTool::getInstance()->shareFiles(QStringList() << path, "text/*");
 }

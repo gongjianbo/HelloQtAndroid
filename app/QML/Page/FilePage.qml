@@ -28,5 +28,17 @@ Rectangle {
                 file_label.text = FileTool.writeTest()
             }
         }
+        Button {
+            text: "Share File"
+            onClicked: {
+                FileTool.shareFileTest()
+            }
+        }
+        Button {
+            text: "Share Files"
+            onClicked: {
+                FileTool.shareFilesTest()
+            }
+        }
     }
 }
