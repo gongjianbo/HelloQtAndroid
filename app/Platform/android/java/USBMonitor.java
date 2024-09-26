@@ -27,14 +27,13 @@ public class USBMonitor {
     private static final String LogTag = "[USBMonitor]";
     private static final String ACTION_USB_PERMISSION = "$ACTION_USB_PERMISSION";
     private UsbManager manager;
-    private PendingIntent permissionIntent;
     private Context context;
     // 保存连接，用于下次插拔信号时判断
     private Map<UsbDevice, UsbDeviceConnection> deviceMap = new HashMap<>();
 
-    public USBMonitor(Context ctx) {
+    public USBMonitor() {
         Log.e(LogTag, String.format("init USBMonitor. 0x%x", Thread.currentThread().getId()));
-        context = ctx;
+        context = MyApplication.getContext();
 
         // Qt 和安卓 UI 线程不是同一个，所以把初始化 post 到安卓 UI 线程去执行
         Looper mainLooper = Looper.getMainLooper();
@@ -59,33 +58,13 @@ public class USBMonitor {
         public void run() {
             Log.e(LogTag, String.format("init Runable doing. 0x%x", Thread.currentThread().getId()));
             manager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
-            Intent intent = new Intent(ACTION_USB_PERMISSION);
-            intent.setPackage(context.getPackageName());
-            // API 31 之后 flag 不能单独设置 PendingIntent.FLAG_UPDATE_CURRENT
-            // PendingIntent.FLAG_IMMUTABLE 没法在授权后获取到设备信息，所以用 PendingIntent.FLAG_MUTABLE
-            int flags = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_MUTABLE : 0) | PendingIntent.FLAG_UPDATE_CURRENT;
-            permissionIntent = PendingIntent.getBroadcast(context, 0, intent, flags);
 
             IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
             filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
             filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
             context.registerReceiver(stateReceiver, filter);
 
-            HashMap<String, UsbDevice> usbList = manager.getDeviceList();
-            for (String name : usbList.keySet()) {
-                UsbDevice usb_device = usbList.get(name);
-                if (usb_device == null) {
-                    Log.e(LogTag, String.format("usb_device is null."));
-                    continue;
-                }
-                String msg = String.format("Attached vid: 0x%x  pid: 0x%x", usb_device.getVendorId(), usb_device.getProductId());
-                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
-                if (!manager.hasPermission(usb_device)) {
-                    manager.requestPermission(usb_device, permissionIntent);
-                    continue;
-                }
-                onAttach(usb_device);
-            }
+            enumDevice();
         }
     };
 
@@ -106,13 +85,13 @@ public class USBMonitor {
                     Log.e(LogTag, String.format("no permission."));
                     return;
                 }
-                onAttach(usb_device);
+                enumDevice();
             } else if (action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
                 String msg = String.format("Attached vid: 0x%x  pid: 0x%x", usb_device.getVendorId(), usb_device.getProductId());
                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
                 if (!manager.hasPermission(usb_device)) {
                     Log.e(LogTag, String.format("request permission."));
-                    manager.requestPermission(usb_device, permissionIntent);
+                    requestPermission(usb_device);
                     return;
                 }
                 onAttach(usb_device);
@@ -124,6 +103,7 @@ public class USBMonitor {
         }
     };
 
+    // 是否是串口设备
     public boolean isSerialPort(UsbDevice device) {
         for (int i = 0; i < device.getInterfaceCount(); i++)
         {
@@ -133,6 +113,42 @@ public class USBMonitor {
             }
         }
         return false;
+    }
+
+    // 请求权限
+    private void requestPermission(UsbDevice device) {
+        Intent intent = new Intent(ACTION_USB_PERMISSION);
+        intent.setPackage(context.getPackageName());
+        // API 31 之后 flag 不能单独设置 PendingIntent.FLAG_UPDATE_CURRENT
+        // PendingIntent.FLAG_IMMUTABLE 没法在授权后获取到设备信息，所以用 PendingIntent.FLAG_MUTABLE
+        int flags = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ? PendingIntent.FLAG_MUTABLE : 0) | PendingIntent.FLAG_UPDATE_CURRENT;
+        PendingIntent permission = PendingIntent.getBroadcast(context, device.getDeviceId(), intent, flags);
+        manager.requestPermission(device, permission);
+    }
+
+    // 枚举设备，请求权限
+    private void enumDevice() {
+        HashMap<String, UsbDevice> usbList = manager.getDeviceList();
+        for (String name : usbList.keySet()) {
+            UsbDevice usb_device = usbList.get(name);
+            if (usb_device == null) {
+                Log.e(LogTag, String.format("usb_device is null."));
+                continue;
+            }
+            UsbDeviceConnection connection = deviceMap.get(usb_device);
+            if (connection != null) {
+                Log.e(LogTag, String.format("usb_device is connected."));
+                continue;
+            }
+            // String msg = String.format("Attached vid: 0x%x  pid: 0x%x", usb_device.getVendorId(), usb_device.getProductId());
+            // Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
+            if (!manager.hasPermission(usb_device)) {
+                Log.e(LogTag, String.format("request permission."));
+                requestPermission(usb_device);
+                return;
+            }
+            onAttach(usb_device);
+        }
     }
 
     private boolean onAttach(final UsbDevice device) {

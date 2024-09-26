@@ -115,20 +115,9 @@ void USBManager::initJNI()
         {{"jniDeviceAttach", "(IIILjava/lang/String;Ljava/lang/String;Z)Z", reinterpret_cast<void *>(jniDeviceAttach)},
          {"jniDeviceDetach", "(I)V", reinterpret_cast<void *>(jniDeviceDetach)}};
 
-    // 通过自定义的 Application 获取 context，也可以通过当前 Activity 获取
-    QAndroidJniObject context = QAndroidJniObject::callStaticObjectMethod(
-        "com/gongjianbo/demo/MyApplication",
-        "getContext",
-        "()Landroid/content/Context;");
-    if (!context.isValid()) return;
-
     // 如果用无参构造，直接写 QAndroidJniObject("com/gongjianbo/demo/USBMonitor");
     // 调用时要注意 Qt 的 UI 线程不是安卓的 UI 线程
-    QAndroidJniObject monitor(
-        "com/gongjianbo/demo/USBMonitor",
-        "(Landroid/content/Context;)V",
-        context.object<jobject>());
-
+    QAndroidJniObject monitor("com/gongjianbo/demo/USBMonitor");
     if (!monitor.isValid()) return;
 
     QAndroidJniEnvironment env;

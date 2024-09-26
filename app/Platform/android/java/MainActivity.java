@@ -42,10 +42,10 @@ public class MainActivity extends QtActivity {
         // 设置屏幕常亮
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        // 文件读写权限
-        verifyStoragePermissions(this);
         // 相机权限
         verifyCameraPermissions(this);
+        // 文件读写权限
+        verifyStoragePermissions(this);
         Log.e(LogTag, "onCreate MainActivity finish");
     }
 
