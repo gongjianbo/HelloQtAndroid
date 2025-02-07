@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <QUrl>
 
 // Android java 工具函数调用
 class AndroidTool : public QObject
@@ -24,4 +25,6 @@ public:
     Q_INVOKABLE void shareFiles(const QStringList &paths,
                                 const QString &mimeType = "*/*",
                                 const QString &title = "Share");
+    // 从uri获取文件名
+    Q_INVOKABLE QString getFileNameFromUri(const QUrl &url);
 };

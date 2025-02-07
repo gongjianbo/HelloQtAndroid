@@ -2,6 +2,8 @@
 #include <QtAndroidExtras/QAndroidJniObject>
 #include <QtAndroidExtras/QAndroidJniEnvironment>
 #include <QtAndroidExtras/QtAndroid>
+#include <QFileInfo>
+#include <QFile>
 #include <QDebug>
 
 AndroidTool::AndroidTool()
@@ -76,4 +78,19 @@ void AndroidTool::shareFiles(const QStringList &paths, const QString &mimeType, 
         j_title.object<jstring>());
     // 用完释放
     env->DeleteLocalRef(j_arr);
+}
+
+QString AndroidTool::getFileNameFromUri(const QUrl &url)
+{
+    // 安卓Dialog获取的url不能用toLocalFile转换成本地路径
+    // 要保留url编码格式，不然java中没法正常转换成uri，比如带空格中文等情况
+    // 如果是cpp对话框拿到的QString path，也可以QUrl::fromEncoded(path.toUtf8()).toString(QUrl::FullyEncoded)
+    QAndroidJniObject j_url = QAndroidJniObject::fromString(url.toString(QUrl::FullyEncoded));
+    QAndroidJniObject j_name = QAndroidJniObject::callStaticObjectMethod(
+        "com/gongjianbo/demo/AndroidTool",
+        "getFileNameFromUri",
+        "(Ljava/lang/String;)Ljava/lang/String;",
+        j_url.object()
+        );
+    return j_name.toString();
 }

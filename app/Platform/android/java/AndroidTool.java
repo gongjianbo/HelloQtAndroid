@@ -9,6 +9,7 @@ import android.util.Log;
 import android.net.Uri;
 import android.os.Build;
 import androidx.core.content.FileProvider;
+import androidx.documentfile.provider.DocumentFile;
 import java.io.File;
 import java.util.ArrayList;
 
@@ -107,5 +108,16 @@ public class AndroidTool {
         new Thread(() -> {
             shareFiles(paths, mimeType, title);
         }).start();
+    }
+
+    // 从uri获取文件名
+    public static String getFileNameFromUri(String path) {
+        Uri uri = Uri.parse(path);
+        DocumentFile file = DocumentFile.fromSingleUri(MyApplication.getContext(), uri);
+        Log.e(LogTag, String.format("getFileNameFromUri %s", path));
+        if (file != null && file.getName() != null) {
+            return file.getName();
+        }
+        return uri.getLastPathSegment();
     }
 }
