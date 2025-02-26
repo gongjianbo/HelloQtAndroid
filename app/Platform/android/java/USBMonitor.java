@@ -20,6 +20,8 @@ import android.util.Log;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 // USB 插拔检测
 // TargetSdkVersion > 27 需要先获取 CAMERA 权限，不然 USB Camera 不能弹出授权弹框
@@ -29,7 +31,9 @@ public class USBMonitor {
     private UsbManager manager;
     private Context context;
     // 保存连接，用于下次插拔信号时判断
-    private Map<UsbDevice, UsbDeviceConnection> deviceMap = new HashMap<>();
+    private HashMap<UsbDevice, UsbDeviceConnection> deviceMap = new HashMap<>();
+    // 保存拒绝授权的设备，下次枚举时不请求
+    private HashSet<UsbDevice> disableSet = new HashSet<>();
 
     public USBMonitor() {
         Log.e(LogTag, String.format("init USBMonitor. 0x%x", Thread.currentThread().getId()));
@@ -43,13 +47,16 @@ public class USBMonitor {
 
     protected void finalize() {
         Log.e(LogTag, "free USBMonitor");
-        for (Map.Entry<UsbDevice, UsbDeviceConnection> entry : deviceMap.entrySet()) {
-            UsbDeviceConnection connection = entry.getValue();
-            final int fd = connection.getFileDescriptor();
-            jniDeviceDetach(fd);
-            connection.close();
+        synchronized (this) {
+            for (Map.Entry<UsbDevice, UsbDeviceConnection> entry : deviceMap.entrySet()) {
+                UsbDeviceConnection connection = entry.getValue();
+                final int fd = connection.getFileDescriptor();
+                jniDeviceDetach(fd);
+                connection.close();
+            }
+            deviceMap.clear();
+            disableSet.clear();
         }
-        deviceMap.clear();
     }
 
     // 初始化放到 UI 线程执行
@@ -74,45 +81,50 @@ public class USBMonitor {
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
             Log.e(LogTag, String.format("state onReceive %s. 0x%x", action, Thread.currentThread().getId()));
-            UsbDevice usb_device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            if (usb_device == null) {
-                Log.e(LogTag, String.format("usb_device is null."));
-                return;
-            }
-            // String name = usb_device.getDeviceName();
-            if (action == ACTION_USB_PERMISSION) {
-                if (!manager.hasPermission(usb_device)) {
-                    Log.e(LogTag, String.format("no permission."));
+            synchronized (this) {
+                UsbDevice usb_device = (UsbDevice)intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (usb_device == null) {
+                    Log.e(LogTag, String.format("usb_device is null."));
                     return;
                 }
-                enumDevice();
-            } else if (action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
-                String msg = String.format("Attached vid: 0x%x  pid: 0x%x", usb_device.getVendorId(), usb_device.getProductId());
-                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
-                if (!manager.hasPermission(usb_device)) {
-                    Log.e(LogTag, String.format("request permission."));
-                    requestPermission(usb_device);
-                    return;
+                // String name = usb_device.getDeviceName();
+                if (action == ACTION_USB_PERMISSION) {
+                    if (!manager.hasPermission(usb_device)) {
+                        Log.e(LogTag, String.format("no permission."));
+                        disableSet.add(usb_device);
+                    }
+                    enumDevice();
+                } else if (action == UsbManager.ACTION_USB_DEVICE_ATTACHED) {
+                    String msg = String.format("Attached vid: 0x%x  pid: 0x%x", usb_device.getVendorId(), usb_device.getProductId());
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
+                    if (!manager.hasPermission(usb_device)) {
+                        Log.e(LogTag, String.format("attach request permission. %d", disableSet.size()));
+                        requestPermission(usb_device);
+                        return;
+                    }
+                    onAttach(usb_device);
+                } else if (action == UsbManager.ACTION_USB_DEVICE_DETACHED) {
+                    String msg = String.format("Detached vid: 0x%x  pid: 0x%x", usb_device.getVendorId(), usb_device.getProductId());
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
+                    onDetach(usb_device);
                 }
-                onAttach(usb_device);
-            } else if (action == UsbManager.ACTION_USB_DEVICE_DETACHED) {
-                String msg = String.format("Detached vid: 0x%x  pid: 0x%x", usb_device.getVendorId(), usb_device.getProductId());
-                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
-                onDetach(usb_device);
             }
         }
     };
 
-    // 是否是串口设备
-    public boolean isSerialPort(UsbDevice device) {
+    // 设备类型deviceType：0一般设备，1UVC，2其他不需要处理的设备
+    private int getDeviceType(UsbDevice device) {
         for (int i = 0; i < device.getInterfaceCount(); i++)
         {
             UsbInterface inter = device.getInterface(i);
-            if (inter.getInterfaceClass() == UsbConstants.USB_CLASS_CDC_DATA) {
-                return true;
+            Log.e(LogTag, String.format("interface class %d.", inter.getInterfaceClass()));
+            switch (inter.getInterfaceClass()) {
+                case UsbConstants.USB_CLASS_VIDEO: return 1;
+                case UsbConstants.USB_CLASS_CDC_DATA: return 2;
+                case UsbConstants.USB_CLASS_MASS_STORAGE: return 2;
             }
         }
-        return false;
+        return 0;
     }
 
     // 请求权限
@@ -143,9 +155,12 @@ public class USBMonitor {
             // String msg = String.format("Attached vid: 0x%x  pid: 0x%x", usb_device.getVendorId(), usb_device.getProductId());
             // Toast.makeText(context, msg, Toast.LENGTH_SHORT).show();
             if (!manager.hasPermission(usb_device)) {
-                Log.e(LogTag, String.format("request permission."));
-                requestPermission(usb_device);
-                return;
+                if (!disableSet.contains(usb_device)) {
+                    Log.e(LogTag, String.format("enum request permission."));
+                    requestPermission(usb_device);
+                    return;
+                }
+                continue;
             }
             onAttach(usb_device);
         }
@@ -162,10 +177,10 @@ public class USBMonitor {
         final int fd = connection.getFileDescriptor();
         final int vid = device.getVendorId();
         final int pid = device.getProductId();
+        final int device_type = getDeviceType(device);
         final String device_name = device.getDeviceName();
         final String product_name = device.getProductName();
-        final boolean is_serial_port = isSerialPort(device);
-        if (jniDeviceAttach(fd, vid, pid, device_name, product_name, is_serial_port)) {
+        if (jniDeviceAttach(fd, vid, pid, device_type, device_name, product_name)) {
             deviceMap.put(device, connection);
             return true;
         } else {
@@ -182,12 +197,13 @@ public class USBMonitor {
             final int fd = connection.getFileDescriptor();
             jniDeviceDetach(fd);
             connection.close();
-            deviceMap.remove(device);
         }
+        deviceMap.remove(device);
+        disableSet.remove(device);
     }
 
-    // [JNI]设备插入
-    public native boolean jniDeviceAttach(int fd, int vid, int pid, String deviceName, String productName, boolean isSerialPort);
-    // [JNI]设备拔出
+    // [JNI] 设备插入
+    public native boolean jniDeviceAttach(int fd, int vid, int pid, int deviceType, String deviceName, String productName);
+    // [JNI] 设备拔出
     public native void jniDeviceDetach(int fd);
 }

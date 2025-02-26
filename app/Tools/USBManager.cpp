@@ -47,11 +47,8 @@ void deviceDescriptor(libusb_device *device)
 }
 
 jboolean jniDeviceAttach(JNIEnv *env, jobject /*thiz*/, jint fd, jint vid, jint pid,
-                         jstring deviceName, jstring productName, jboolean isSerialPort)
+                         jint deviceType,jstring deviceName, jstring productName)
 {
-    if (fd == 0) {
-        return false;
-    }
     QString device_name;
     if (deviceName) {
         const char *str = env->GetStringUTFChars(deviceName, 0);
@@ -64,21 +61,23 @@ jboolean jniDeviceAttach(JNIEnv *env, jobject /*thiz*/, jint fd, jint vid, jint 
         product_name = str;
         env->ReleaseStringUTFChars(productName, str);
     }
-    QString info = QString("fd: 0x%1, vid: 0x%2, pid: 0x%3, device: %4, product: %5, %6")
+    QString info = QString("fd: [0x%1], vid: [0x%2], pid: [0x%3], type: [%4], device: [%5], product: [%6]")
                        .arg(QString::number(fd, 16))
                        .arg(QString::number(vid, 16))
                        .arg(QString::number(pid, 16))
+                       .arg(deviceType)
                        .arg(device_name)
-                       .arg(product_name)
-                       .arg(isSerialPort ? "serial port" : "usb device");
+                       .arg(product_name);
     qDebug() << __FUNCTION__ << info;
-    if (isSerialPort) {
-        // 串口暂不处理
-    } else {
-        QMetaObject::invokeMethod(USBManager::getInstance(), "onDeviceAttach", Qt::QueuedConnection,
-                                  Q_ARG(int, fd), Q_ARG(int, vid), Q_ARG(int, pid),
-                                  Q_ARG(QString, device_name), Q_ARG(QString, product_name));
+    // 设备类型deviceType：0一般设备，1UVC，2其他不需要处理的设备
+    // 这里不处理串口等其他设备
+    if (fd == 0 || deviceType == 2) {
+        return false;
     }
+    // 拿到 fd 就可以通过 libusb 的接口进行访问了
+    QMetaObject::invokeMethod(USBManager::getInstance(), "onDeviceAttach", Qt::QueuedConnection,
+                              Q_ARG(int, fd), Q_ARG(int, vid), Q_ARG(int, pid), Q_ARG(int, deviceType),
+                              Q_ARG(QString, device_name), Q_ARG(QString, product_name));
     return true;
 }
 
@@ -112,7 +111,7 @@ USBManager::~USBManager()
 void USBManager::initJNI()
 {
     JNINativeMethod methods[] =
-        {{"jniDeviceAttach", "(IIILjava/lang/String;Ljava/lang/String;Z)Z", reinterpret_cast<void *>(jniDeviceAttach)},
+        {{"jniDeviceAttach", "(IIIILjava/lang/String;Ljava/lang/String;)Z", reinterpret_cast<void *>(jniDeviceAttach)},
          {"jniDeviceDetach", "(I)V", reinterpret_cast<void *>(jniDeviceDetach)}};
 
     // 如果用无参构造，直接写 QAndroidJniObject("com/gongjianbo/demo/USBMonitor");
@@ -145,7 +144,7 @@ bool USBManager::getIsOpen() const
     return mIsOpen;
 }
 
-void USBManager::onDeviceAttach(int fd, int vid, int pid, const QString &deviceName, const QString &productName)
+void USBManager::onDeviceAttach(int fd, int vid, int pid, int deviceType, const QString &deviceName, const QString &productName)
 {
     // 避免枚举到多个设备重复打开
     if (mIsOpen)
@@ -171,7 +170,7 @@ void USBManager::onDeviceAttach(int fd, int vid, int pid, const QString &deviceN
         mUsbFs = "/dev/bus/usb";
     }
     mDeviceInfo = QString("vid(0x%1) pid(0x%2)").arg(QString::number(vid, 16)).arg(QString::number(pid, 16));
-    qDebug() << __FUNCTION__ << fd << vid << pid << deviceName << productName;
+    qDebug() << __FUNCTION__ << fd << vid << pid << deviceType << deviceName << productName;
     qDebug() << mDeviceInfo << mBusNum << mDevAddr << mUsbFs;
     emit deviceInfoChanged();
     testOpen();
