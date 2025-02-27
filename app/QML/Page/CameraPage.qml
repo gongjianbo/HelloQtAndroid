@@ -59,14 +59,13 @@ Rectangle {
                 visible: false
                 anchors.fill: camera_output
                 fragmentShader: "
-                        uniform sampler2D source;
-                        varying vec2 qt_TexCoord0;
-                        void main() {
-                            vec4 color = texture2D(source, qt_TexCoord0);
-                            // float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-                            // gl_FragColor = vec4(vec3(gray), color.a);
-                            gl_FragColor = color;
-                        }"
+                    uniform sampler2D source;
+                    varying vec2 qt_TexCoord0;
+                    void main() {
+                        vec4 color = texture2D(source, qt_TexCoord0);
+                        float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+                        gl_FragColor = qt_TexCoord0.x > 0.5f ? vec4(vec3(gray), color.a) : color;
+                    }"
             }
             // 实际视图
             Item {

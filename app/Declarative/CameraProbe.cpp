@@ -46,15 +46,16 @@ void CameraProbe::setSource(QObject *source)
     connect(mProbe, &QVideoProbe::videoFrameProbed, this, [this](const QVideoFrame &frame){
         mFpsCounter++;
         if (mCapture) {
+            // 如果是获取视频流，就不在主线程处理
             doCapture(frame);
             mCapture = false;
         }
     }, Qt::DirectConnection);
-    connect(mCamera, &QCamera::stateChanged, this, [this](QCamera::State state){
-        qDebug() << "CameraProbe QCamera::stateChanged" << state;
+    connect(mCamera, &QCamera::statusChanged, this, [this](QCamera::Status status){
+        qDebug() << "CameraProbe QCamera::statusChanged" << status;
         mFpsCounter = 0;
         mCapture = false;
-        if (state == QCamera::ActiveState) {
+        if (status == QCamera::ActiveStatus) {
             mTimer->start(1000);
         } else {
             mTimer->stop();

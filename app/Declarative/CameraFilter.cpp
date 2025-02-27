@@ -37,11 +37,11 @@ void CameraFilter::setSource(QObject *source)
     if (!mCamera)
         return;
 
-    connect(mCamera, &QCamera::stateChanged, this, [this](QCamera::State state){
-        qDebug() << "CameraFilter QCamera::stateChanged" << state;
+    connect(mCamera, &QCamera::statusChanged, this, [this](QCamera::Status status){
+        qDebug() << "CameraFilter QCamera::statusChanged" << status;
         mFpsCounter = 0;
         mCapture = false;
-        if (state == QCamera::ActiveState) {
+        if (status == QCamera::ActiveStatus) {
             mTimer->start(1000);
         } else {
             mTimer->stop();
@@ -91,8 +91,10 @@ QVideoFrame CameraFilterRunnable::run(QVideoFrame *input, const QVideoSurfaceFor
     if (!input || !input->isValid())
         return QVideoFrame();
     mFilter->mFpsCounter++;
+    // 在filter中的耗时操作会影响最终的刷新速度
+    const bool every = false;
     // 目前只是用来拍图，所以不用每帧都处理
-    if (!mFilter->mCapture) {
+    if (!every && !mFilter->mCapture) {
         return *input;
     }
     QImage image;
@@ -142,5 +144,8 @@ QVideoFrame CameraFilterRunnable::run(QVideoFrame *input, const QVideoSurfaceFor
         emit mFilter->captureFinished(QUrl::fromLocalFile(path));
         mFilter->mCapture = false;
     }
-    return *input;
+    if (!every) {
+        return *input;
+    }
+    return QVideoFrame(image);
 }
