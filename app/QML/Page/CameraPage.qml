@@ -20,12 +20,22 @@ Rectangle {
             border.color: "black"
             // 视频渲染
             VideoOutput {
-                id: camera_putput
+                id: camera_output
                 visible: false
                 // 保持原始大小方便截图
                 // anchors.fill: parent
                 // anchors.margins: 1
                 source: camera
+                filters: [
+                    CameraFilter {
+                        id: camera_filter
+                        source: camera
+                        onCaptureFinished: function(url) {
+                            camera_frame.source = ""
+                            camera_frame.source = url
+                        }
+                    }
+                ]
                 autoOrientation: false
                 // 横屏旋转
                 // orientation: ActivityManager.rotation === 270 ? 180 : 0
@@ -43,18 +53,19 @@ Rectangle {
             ShaderEffect {
                 id: camera_effect
                 property var source: ShaderEffectSource {
-                    sourceItem: camera_putput
+                    sourceItem: camera_output
                     live: true
                 }
                 visible: false
-                anchors.fill: camera_putput
+                anchors.fill: camera_output
                 fragmentShader: "
                         uniform sampler2D source;
                         varying vec2 qt_TexCoord0;
                         void main() {
                             vec4 color = texture2D(source, qt_TexCoord0);
-                            float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-                            gl_FragColor = vec4(vec3(gray), color.a);
+                            // float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+                            // gl_FragColor = vec4(vec3(gray), color.a);
+                            gl_FragColor = color;
                         }"
             }
             // 实际视图
@@ -64,9 +75,9 @@ Rectangle {
                 ShaderEffectSource {
                     id: camera_view
                     // 如果原图宽高比更大，就以Item宽度来拉伸，否则以高度拉伸，使之保持原始比例
-                    property bool byHor: (parent.width / parent.height) < (camera_putput.width / camera_putput.height)
-                    width: parseInt(byHor ? parent.width : ((camera_putput.width / camera_putput.height) * parent.height))
-                    height: parseInt(byHor ? (parent.width / (camera_putput.width / camera_putput.height)) : parent.height)
+                    property bool byHor: (parent.width / parent.height) < (camera_output.width / camera_output.height)
+                    width: parseInt(byHor ? parent.width : ((camera_output.width / camera_output.height) * parent.height))
+                    height: parseInt(byHor ? (parent.width / (camera_output.width / camera_output.height)) : parent.height)
                     anchors.centerIn: parent
                     sourceItem: camera_effect
                     live: true
@@ -78,7 +89,7 @@ Rectangle {
             Layout.fillHeight: true
             Column {
                 anchors.centerIn: parent
-                spacing: 20
+                spacing: 10
                 ComboBox {
                     id: device_box
                     width: 160
@@ -107,18 +118,54 @@ Rectangle {
                     }
                 }
                 Button {
-                    text: "Cpture"
+                    text: "ImageCpture"
+                    onClicked: {
+                        // imageCapture捕获的图像可能和VideoOutput的方向不一致，而且没法叠加滤镜
+                        if (camera) {
+                            camera.imageCapture.captureToLocation(AppTool.appDataPath() + "/capture_temp.jpg")
+                        }
+                    }
+                }
+                Button {
+                    text: "VideoProbe"
+                    onClicked: {
+                        camera_probe.capture()
+                    }
+                    CameraProbe {
+                        id: camera_probe
+                        source: camera
+                        onCaptureFinished: function(url) {
+                            camera_frame.source = ""
+                            camera_frame.source = url
+                        }
+                    }
+                    Text {
+                        anchors.left: parent.right
+                        anchors.leftMargin: 10
+                        text: camera_probe.fps
+                    }
+                }
+                Button {
+                    text: "OutputFilter"
+                    onClicked: {
+                        camera_filter.capture()
+                    }
+                    Text {
+                        anchors.left: parent.right
+                        anchors.leftMargin: 10
+                        text: camera_filter.fps
+                    }
+                }
+                Button {
+                    text: "grabToImage"
                     onClicked: {
                         // grabToImage截图出来的图像尺寸是Item的，所以需要一个原始尺寸的Item
                         camera_effect.grabToImage(function(result) {
-                            console.log("cpature", camera_putput.width, camera_putput.height, result.url)
+                            console.log("cpature", camera_output.width, camera_output.height, result.url)
                             AppTool.imageInfo(result.image)
+                            camera_frame.source = ""
                             camera_frame.source = result.url
                         });
-                        // imageCapture捕获的图像可能和VideoOutput的方向不一致，而且没法叠加滤镜
-                        // if (camera) {
-                        //     camera.imageCapture.captureToLocation(AppTool.appDataPath() + "/capture_temp.jpg")
-                        // }
                     }
                 }
                 Rectangle {
@@ -156,6 +203,7 @@ Rectangle {
                 }
                 onImageCaptured: function(requestId, preview) {
                     console.log("image captured", preview)
+                    camera_frame.source = ""
                     camera_frame.source = preview
                 }
                 onImageSaved: function(requestId, path) {
