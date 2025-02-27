@@ -18,10 +18,13 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             border.color: "black"
+            // 视频渲染
             VideoOutput {
-                id: video_putput
-                anchors.fill: parent
-                anchors.margins: 1
+                id: camera_putput
+                visible: false
+                // 保持原始大小方便截图
+                // anchors.fill: parent
+                // anchors.margins: 1
                 source: camera
                 autoOrientation: false
                 // 横屏旋转
@@ -34,6 +37,39 @@ Rectangle {
                     case 270: return 180
                     default: return 0
                     }
+                }
+            }
+            // 滤镜
+            ShaderEffect {
+                id: camera_effect
+                property var source: ShaderEffectSource {
+                    sourceItem: camera_putput
+                    live: true
+                }
+                visible: false
+                anchors.fill: camera_putput
+                fragmentShader: "
+                        uniform sampler2D source;
+                        varying vec2 qt_TexCoord0;
+                        void main() {
+                            vec4 color = texture2D(source, qt_TexCoord0);
+                            float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+                            gl_FragColor = vec4(vec3(gray), color.a);
+                        }"
+            }
+            // 实际视图
+            Item {
+                anchors.fill: parent
+                anchors.margins: 1
+                ShaderEffectSource {
+                    id: camera_view
+                    // 如果原图宽高比更大，就以Item宽度来拉伸，否则以高度拉伸，使之保持原始比例
+                    property bool byHor: (parent.width / parent.height) < (camera_putput.width / camera_putput.height)
+                    width: parseInt(byHor ? parent.width : ((camera_putput.width / camera_putput.height) * parent.height))
+                    height: parseInt(byHor ? (parent.width / (camera_putput.width / camera_putput.height)) : parent.height)
+                    anchors.centerIn: parent
+                    sourceItem: camera_effect
+                    live: true
                 }
             }
         }
@@ -73,19 +109,28 @@ Rectangle {
                 Button {
                     text: "Cpture"
                     onClicked: {
-                        // video_putput.grabToImage(function(result) {
-                        //     console.log("cpature", result.url)
-                        //     camera_frame.source = result.url
-                        // });
-                        if (camera) {
-                            camera.imageCapture.capture()
-                        }
+                        // grabToImage截图出来的图像尺寸是Item的，所以需要一个原始尺寸的Item
+                        camera_effect.grabToImage(function(result) {
+                            console.log("cpature", camera_putput.width, camera_putput.height, result.url)
+                            AppTool.imageInfo(result.image)
+                            camera_frame.source = result.url
+                        });
+                        // imageCapture捕获的图像可能和VideoOutput的方向不一致，而且没法叠加滤镜
+                        // if (camera) {
+                        //     camera.imageCapture.captureToLocation(AppTool.appDataPath() + "/capture_temp.jpg")
+                        // }
                     }
                 }
-                Image {
-                    id: camera_frame
+                Rectangle {
                     width: 160
                     height: 120
+                    border.color: "black"
+                    Image {
+                        id: camera_frame
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        fillMode: Image.PreserveAspectFit
+                    }
                 }
             }
         }
@@ -103,13 +148,18 @@ Rectangle {
         id: camera_comp
         Camera {
             // 安卓上无法通过camera.supportedViewfinderResolutions()获取分辨率
+            // 调用imageCapture.capture()默认保存到相册
+            // 调用imageCapture.captureToLocation()可以设置保存路径，需要先创建对应文件夹
             imageCapture {
+                onCaptureFailed: function(requestId, message) {
+                    console.log("capture failed", message)
+                }
                 onImageCaptured: function(requestId, preview) {
-                    console.log("capture", preview)
+                    console.log("image captured", preview)
                     camera_frame.source = preview
                 }
                 onImageSaved: function(requestId, path) {
-                    console.log("capture", path)
+                    console.log("image saved", path)
                 }
             }
         }

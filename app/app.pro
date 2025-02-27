@@ -6,6 +6,7 @@ QT += qml
 QT += quickcontrols2
 QT += concurrent
 QT += svg
+QT += multimedia
 
 CONFIG += utf8_source
 CONFIG += c++17

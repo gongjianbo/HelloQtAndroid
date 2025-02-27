@@ -7,6 +7,7 @@
 
 #include "ActivityManager.h"
 #include "AndroidTool.h"
+#include "AppTool.h"
 #include "FileTool.h"
 #include "USBManager.h"
 
@@ -40,28 +41,35 @@ inline void registerType(QQmlApplicationEngine *engine)
     // 可以用全局属性，也可以注册为单例
     // qmlRegisterUncreatableType<USBManager>("Cute.Tools", 1, 0, "USBManager", "USBManager is uncreatable type");
     // engine.rootContext()->setContextProperty("usbManager", USBManager::getInstance());
+
+    engine->setObjectOwnership(ActivityManager::getInstance(), QQmlEngine::CppOwnership);
     qmlRegisterSingletonType<ActivityManager>(
         "GongJianBo.Tools", 1, 0,
-        "ActivityManager", [](QQmlEngine *qmlEngine, QJSEngine *){
-            qmlEngine->setObjectOwnership(ActivityManager::getInstance(), QQmlEngine::CppOwnership);
+        "ActivityManager", [](QQmlEngine *, QJSEngine *){
             return ActivityManager::getInstance();
         });
+    engine->setObjectOwnership(AndroidTool::getInstance(), QQmlEngine::CppOwnership);
     qmlRegisterSingletonType<AndroidTool>(
         "GongJianBo.Tools", 1, 0,
-        "AndroidTool", [](QQmlEngine *qmlEngine, QJSEngine *){
-            qmlEngine->setObjectOwnership(AndroidTool::getInstance(), QQmlEngine::CppOwnership);
+        "AndroidTool", [](QQmlEngine *, QJSEngine *){
             return AndroidTool::getInstance();
         });
+    engine->setObjectOwnership(AppTool::getInstance(), QQmlEngine::CppOwnership);
+    qmlRegisterSingletonType<AppTool>(
+        "GongJianBo.Tools", 1, 0,
+        "AppTool", [](QQmlEngine *, QJSEngine *){
+            return AppTool::getInstance();
+        });
+    engine->setObjectOwnership(FileTool::getInstance(), QQmlEngine::CppOwnership);
     qmlRegisterSingletonType<FileTool>(
         "GongJianBo.Tools", 1, 0,
-        "FileTool", [](QQmlEngine *qmlEngine, QJSEngine *){
-            qmlEngine->setObjectOwnership(FileTool::getInstance(), QQmlEngine::CppOwnership);
+        "FileTool", [](QQmlEngine *, QJSEngine *){
             return FileTool::getInstance();
         });
+    engine->setObjectOwnership(USBManager::getInstance(), QQmlEngine::CppOwnership);
     qmlRegisterSingletonType<USBManager>(
         "GongJianBo.Tools", 1, 0,
-        "USBManager", [](QQmlEngine *qmlEngine, QJSEngine *){
-            qmlEngine->setObjectOwnership(USBManager::getInstance(), QQmlEngine::CppOwnership);
+        "USBManager", [](QQmlEngine *, QJSEngine *){
             return USBManager::getInstance();
         });
 
