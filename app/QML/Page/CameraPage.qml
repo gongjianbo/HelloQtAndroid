@@ -58,13 +58,16 @@ Rectangle {
                 }
                 visible: false
                 anchors.fill: camera_output
+                // 忽略了qt_Opacity组件透明度
                 fragmentShader: "
-                    uniform sampler2D source;
-                    varying vec2 qt_TexCoord0;
+                    precision highp float;
+                    varying mediump vec2 qt_TexCoord0;
+                    // uniform highp float qt_Opacity;
+                    uniform lowp sampler2D source;
                     void main() {
                         vec4 color = texture2D(source, qt_TexCoord0);
                         float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-                        gl_FragColor = qt_TexCoord0.x > 0.5f ? vec4(vec3(gray), color.a) : color;
+                        gl_FragColor = qt_TexCoord0.x > 0.5 ? vec4(gray, 0.0, 0.0, color.a) : color;
                     }"
             }
             // 实际视图
