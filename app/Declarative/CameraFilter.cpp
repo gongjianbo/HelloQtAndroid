@@ -95,6 +95,9 @@ QVideoFrame CameraFilterRunnable::run(QVideoFrame *input, const QVideoSurfaceFor
     const bool every = false;
     // 目前只是用来拍图，所以不用每帧都处理
     if (!every && !mFilter->mCapture) {
+        // 部分设备VideoOutput套了ShaderEffect没画面，map一下就有了
+        input->map(QAbstractVideoBuffer::ReadOnly);
+        input->unmap();
         return *input;
     }
     QImage image;
