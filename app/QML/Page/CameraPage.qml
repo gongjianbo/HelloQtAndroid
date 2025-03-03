@@ -59,14 +59,14 @@ Rectangle {
                 visible: false
                 anchors.fill: camera_output
                 // 忽略了qt_Opacity组件透明度
+                // 部分环境着色器不支持precision highp float;但是需要设置变量精度
                 fragmentShader: "
-                    precision highp float;
                     varying mediump vec2 qt_TexCoord0;
                     // uniform highp float qt_Opacity;
                     uniform lowp sampler2D source;
                     void main() {
-                        vec4 color = texture2D(source, qt_TexCoord0);
-                        float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+                        highp vec4 color = texture2D(source, qt_TexCoord0);
+                        highp float gray = dot(color.rgb, vec3(0.299, 0.587, 0.114));
                         gl_FragColor = qt_TexCoord0.x > 0.5 ? vec4(gray, 0.0, 0.0, color.a) : color;
                     }"
             }
