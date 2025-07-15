@@ -38,6 +38,28 @@ void AndroidTool::gotoHome()
         "()V");
 }
 
+QString AndroidTool::androidId()
+{
+#if 0
+    QAndroidJniObject resolver = QtAndroid::androidActivity().callObjectMethod(
+        "getContentResolver",
+        "()Landroid/content/ContentResolver;");
+    QAndroidJniObject tag = QAndroidJniObject::fromString("android_id");
+    QAndroidJniObject id = QAndroidJniObject::callStaticObjectMethod(
+        "android/provider/Settings$Secure", "getString",
+        "(Landroid/content/ContentResolver;Ljava/lang/String;)Ljava/lang/String;",
+        resolver.object<jobject>(),
+        tag.object<jstring>());
+    qDebug() << id.toString();
+#endif
+    QAndroidJniObject j_id = QAndroidJniObject::callStaticObjectMethod(
+        "com/gongjianbo/demo/AndroidTool",
+        "androidId",
+        "()Ljava/lang/String;"
+        );
+    return j_id.toString();
+}
+
 void AndroidTool::shareFile(const QString &path, const QString &mimeType, const QString &title)
 {
     if (path.isEmpty())

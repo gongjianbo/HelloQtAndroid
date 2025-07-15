@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.provider.Settings;
 import android.util.Log;
 import android.net.Uri;
 import android.os.Build;
@@ -38,6 +39,13 @@ public class AndroidTool {
         intent.addCategory(Intent.CATEGORY_HOME);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         MyApplication.getContext().startActivity(intent);
+    }
+
+    // 获取Android ID
+    public static String androidId() {
+        String android_id = Settings.Secure.getString(MyApplication.getContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+        Log.e(LogTag, String.format("androidId %s", android_id));
+        return android_id;
     }
 
     // 分享单个文件

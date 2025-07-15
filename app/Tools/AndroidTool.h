@@ -15,8 +15,10 @@ public:
 
     // 重启
     Q_INVOKABLE void restartApp();
-    // 返回 Home 界面
+    // 返回Home界面
     Q_INVOKABLE void gotoHome();
+    // 获取Android ID
+    Q_INVOKABLE QString androidId();
     // 分享单个文件
     Q_INVOKABLE void shareFile(const QString &path,
                                const QString &mimeType = "*/*",

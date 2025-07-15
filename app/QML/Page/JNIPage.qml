@@ -24,5 +24,11 @@ Rectangle {
                 AndroidTool.gotoHome()
             }
         }
+        Button {
+            text: "Android ID"
+            onClicked: {
+                text = AndroidTool.androidId()
+            }
+        }
     }
 }
